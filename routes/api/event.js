@@ -157,8 +157,8 @@ router.get("/getAll",async (req,res) =>{
         return;
       }else console.log("✔️")
     }
-    if(count == -1) var p = await Event.find().sort({date:-1});//.then(p =>{
-    else var p = await Event.find().sort({date:-1}).limit(count);//.then(p =>{
+    if(count == -1) var p = await Event.find().sort({date:1});//.then(p =>{
+    else var p = await Event.find().sort({date:1}).limit(count);//.then(p =>{
     if(p == null) {
       out.status = 400;
       out.description = "no events";
