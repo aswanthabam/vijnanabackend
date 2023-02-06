@@ -323,6 +323,7 @@ router.get("/getAll",async (req,res) =>{
         is_team:cur.is_team,
         is_reg:cur.is_reg,
         participants:participants,
+        closed:cur.closed,
         teams:admin ? cur.teams : null
       });
     }
@@ -343,7 +344,7 @@ router.get("/getAll",async (req,res) =>{
 // ROUTE : /API/EVENT/EDIT (POST)
 
 router.post("/edit",async (req,res) => {
-  var {id=null,name=null, description=null,date=null,type=null,image=null,maxPart=1,minPart=1,poster=null,docs=null,is_reg=true} = req.body;
+  var {id=null,name=null, description=null,date=null,type=null,image=null,maxPart=1,minPart=1,poster=null,docs=null,is_reg=true,closed=false} = req.body;
   var out = {status:400}
   if(id == null) out.description = "ID Not given";
   else {
@@ -376,6 +377,7 @@ router.post("/edit",async (req,res) => {
       if(poster != null) ev.poster = poster;
       if(docs != null) ev.docs = docs;
       ev.is_reg = is_reg;
+      ev.closed = closed;
       await ev.save(); //save
       out.status = 200;
       out.description = "Event saved ("+name+")";
@@ -398,7 +400,7 @@ router.post("/edit",async (req,res) => {
 
 router.post("/create",async (req,res) => {
   console.log("Create event request")
-  var {name=null, description=null,date=null,type=null,image=null,maxPart=1,minPart=1,poster=null,docs=null,is_reg=true} = req.body;
+  var {name=null, description=null,date=null,type=null,image=null,maxPart=1,minPart=1,poster=null,docs=null,is_reg=true,closed=false} = req.body;
   var out = {status:400}
   if(name == null) out.description = "Name not provided";
   else if(description == null) out.description = "description not provided";
@@ -427,7 +429,8 @@ router.post("/create",async (req,res) => {
       is_team:minPart > 1,
       type:type,
       poster:poster,
-      is_reg:is_reg
+      is_reg:is_reg,
+      closed:closed
     });
     await ev.save(); // save
     out.status = 200;

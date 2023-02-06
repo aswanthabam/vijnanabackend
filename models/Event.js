@@ -44,6 +44,10 @@ const eventSchema = new Schema({
     type:Number,
     required:true
   },
+  closed:{
+    type:Boolean,
+    default:false
+  },
   is_team:{
     type:Boolean,
     default:false
