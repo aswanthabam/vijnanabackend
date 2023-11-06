@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -82,11 +83,11 @@ WSGI_APPLICATION = "vijnanabackend.wsgi.application"
 
 DATABASES = {
     'default': {
-        'ENGINE': 'djongo',
-        'NAME': 'your-db-name',
+        'ENGINE': 'django.db.backends.djongo',
+        'NAME': os.environ.get('DB_NAME'),
         'ENFORCE_SCHEMA': False,
         'CLIENT': {
-            'host': 'mongodb+srv://<username>:<password>@<atlas cluster>/<myFirstDatabase>?retryWrites=true&w=majority'
+            'host': os.environ.get('DB_URL')
         }  
     }
 }
