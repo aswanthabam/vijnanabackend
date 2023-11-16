@@ -12,7 +12,7 @@ class CustomUser(AbstractBaseUser):
 
   college = models.CharField(max_length=100,blank=False,null=False)
   course = models.CharField(max_length=50,blank=False,null=False)
-  year = models.IntegerField(max_length=1,blank=False, null=False)
+  year = models.IntegerField(blank=False, null=False)
 
   EMAIL_FIELD = 'email'
   USERNAME_FIELD = 'user_id'
