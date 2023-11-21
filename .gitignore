@@ -6,8 +6,8 @@ migrations/*.py
 */migrations/*.py
 */*/migrations/*.py
 
-# __pycache__/
-# */__pycache__/
-# */*/__pycache__/
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
 
 .vscode
