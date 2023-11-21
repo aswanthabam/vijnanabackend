@@ -1,7 +1,7 @@
-from django.contrib.auth.base_user import AbstractBaseUser
+# from django.contrib.auth.base_user import AbstractBaseUser
 from django.db import models
-
-class CustomUser(AbstractBaseUser):
+# from django.contrib.auth.models import AbstractUser
+class CustomUser(models.Model):
   user_id = models.CharField(max_length=40,unique=True)
   
   first_name = models.CharField(max_length=50,blank=False,null=False)
@@ -13,6 +13,3 @@ class CustomUser(AbstractBaseUser):
   college = models.CharField(max_length=100,blank=False,null=False)
   course = models.CharField(max_length=50,blank=False,null=False)
   year = models.IntegerField(blank=False, null=False)
-
-  EMAIL_FIELD = 'email'
-  USERNAME_FIELD = 'user_id'
