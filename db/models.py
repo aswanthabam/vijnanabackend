@@ -13,3 +13,6 @@ class CustomUser(models.Model):
   college = models.CharField(max_length=100,blank=False,null=False)
   course = models.CharField(max_length=50,blank=False,null=False)
   year = models.IntegerField(blank=False, null=False)
+
+  password = models.CharField(max_length=50,null=True,blank=False)
+  is_google = models.BooleanField(default=True)
