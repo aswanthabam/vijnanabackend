@@ -1,11 +1,8 @@
 from rest_framework.response import Response
 
 class CustomResponce:
-    out = {
-        'status':'success'
-    }
-
     def __init__(self,message:str=None,data : dict=None):
+        self.out = {'status':'success'}
         if message == None and data == None:
             raise ValueError("Not passed either message or data")
         if message != None:
