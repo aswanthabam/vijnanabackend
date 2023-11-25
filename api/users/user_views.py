@@ -12,5 +12,5 @@ class RegisterView(APIView):
       else:
         return CustomResponce('Unable to complete request!').get_failiure_responce()
     except Exception as e:
-      raise e
+      print(e)
       return CustomResponce('An Unexpected issue occured. Please contact us!').get_failiure_responce(status=500)
