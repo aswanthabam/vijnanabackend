@@ -3,7 +3,7 @@ from rest_framework.fields import empty
 from db.models import CustomUser
 import uuid
 
-class UserSerializer(serializers.Serializer):
+class UserSerializer(serializers.ModelSerializer):
   user_id = serializers.ReadOnlyField()
   first_name = serializers.CharField(required=True)
   second_name = serializers.CharField(required=True)
