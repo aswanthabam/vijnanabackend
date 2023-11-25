@@ -5,7 +5,7 @@ class CustomUser(models.Model):
   user_id = models.CharField(max_length=40,unique=True)
   
   first_name = models.CharField(max_length=50,blank=False,null=False)
-  last_name = models.CharField(max_length=30,blank=False,null=False)
+  second_name = models.CharField(max_length=30,blank=False,null=False)
   
   email = models.EmailField(blank=False,null=False,unique=True)
   phone = models.CharField(max_length=14,unique=True,blank=False,null=False)
