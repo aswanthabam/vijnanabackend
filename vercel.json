@@ -1,0 +1,14 @@
+{
+  "builds": [
+    {
+      "src": "vijnanabackend/wsgi.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "vijnanabackend/wsgi.py"
+    }
+  ]
+}

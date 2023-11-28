@@ -75,7 +75,7 @@ TEMPLATES = [
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-WSGI_APPLICATION = "vijnanabackend.wsgi.application"
+WSGI_APPLICATION = "vijnanabackend.wsgi.app"
 
 REST_FRAMEWORK = {"DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",)}
 
