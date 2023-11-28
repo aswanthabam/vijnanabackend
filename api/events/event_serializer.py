@@ -13,6 +13,7 @@ class EventSerializer(serializers.ModelSerializer):
   documents = serializers.CharField(required=True)
 
   def create(self, validated_data):
+    validated_data['event_id'] = validated_data.get('name').lower().replace(' ','')
     event = Event(**validated_data)
     event.save()
     return event
@@ -26,7 +27,11 @@ class EventSerializer(serializers.ModelSerializer):
       'link',
       'img',
       'details',
-      'documents'
+      'documents',
+      'date',
+      'venue',
+      'poster',
+      'is_open'
     ]
 
 class EventEditSerializer(serializers.ModelSerializer):

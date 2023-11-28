@@ -26,3 +26,7 @@ class Event(models.Model):
   img = models.CharField(null=False,blank=False,max_length=300)
   details = models.TextField(blank=False,null=False)
   documents = models.TextField(blank=False,null=False)
+  date = models.DateTimeField(blank=False,null=False)
+  venue = models.CharField(max_length=30,null=False,blank=False)
+  poster = models.CharField(max_length=300,null=False,blank=False)
+  is_open = models.BooleanField(default=False,null=False)

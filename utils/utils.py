@@ -12,4 +12,5 @@ class CustomResponce:
     def get_success_responce(self,status:int = 200) -> Response:
         return Response(self.out,status)
     def get_failiure_responce(self,status:int = 400) -> Response:
+        self.out['status'] ='failed'
         return Response(self.out,status)
