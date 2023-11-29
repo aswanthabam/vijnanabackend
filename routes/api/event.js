@@ -192,28 +192,6 @@ router.get("/get",async (req,res)=>{
     return;
   }
   console.log("Event data get : "+id);
-  /*
-  if(token != null) {
-    var p = await Admin.find({token:token});
-    if(p == null){
-      out.status = 400;
-      out.description = "Invalid token"
-    }else if(p.length != 1){
-      out.status = 400;
-      out.description = "Invalid token"
-    } else {
-      p = p[0];
-      var date = new Date();
-      if(date.getFullYear() >= p.expiry.getFullYear() && date.getMonth() >= p.expiry.getDate() && date.getDate() >= p.expiry.getDate() && date.getHours() >= p.expiry.getHours() && date.getMinutes() >= p.expiry.getMinutes()) {
-        out.status = 400;
-        out.description = "Expired token";
-      }else admin = true;
-    }
-    if(!admin) {
-      res.json(out);
-      return;
-    }
-  }*/
   try{
     // FIND ALL EVENTS AND LINK THE PARTICULAR EVENTS WITH EVENTREG
     var p = await Event.find({id:id}).populate("participants");
