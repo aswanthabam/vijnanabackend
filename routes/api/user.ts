@@ -1,14 +1,14 @@
 const env = process.env;
-var express = require("express");
-const mongoose = require("mongoose");
+import { Request, Response, Router } from "express";
+import mongoose from "mongoose";
+import { CustomResponse } from "../../response";
+import { User, UserType } from "../../models/User";
+import { Event } from "../../models/Event";
 
-const User = require("../../models/User");
-const Event = require("../../models/Event");
-
-var router = express.Router();
+export const userRouter = Router();
 
 // COMMON FUNCTION FOR USER LOGIN (user instance,res for sending responce,password in case of non google login)
-const loginAction = async (p, res, password = null) => {
+const loginAction = async (p: UserType[], res: Response, password = null) => {
   var out = {};
   console.log("In loginAction function..");
   try {
@@ -115,96 +115,90 @@ const loginAction = async (p, res, password = null) => {
 
 // ROUTE : /API/USEER/GETMYDETAILS
 
-router.post("/getMyDetails", async (req, res) => {
+userRouter.post("/getMyDetails", async (req: Request, res: Response) => {
   console.log("user details fetch");
   var { userId = null, token = null } = req.body;
-  var out = { status: 400 };
-  if (userId == null) out.description = "UserId not provided";
-  else if (token == null) out.description = "Token not provided";
-  else out.status = 200;
-  if (out.status != 200) {
-    res.json(out);
+  var out = new CustomResponse(res);
+  if (token == null || userId == null) {
+    if (userId == null) out.set_data_key("userId", "UserId not provided");
+    if (token == null) out.set_data_key("token", "Token not provided");
+    out.set_message("Invalid Request Data !");
+    out.send_failiure_response();
     return;
   }
+  // else out.status = 200;
   try {
     // FETCH THE USER
     var p = await User.find({ userId: userId }).populate("participate");
-    out.status = 400;
-    if (p == null) out.description = "Invalid userId";
-    else if (p.length != 1) out.description = "User not found";
-    else {
-      p = p[0];
+    if (p == null) {
+      out.send_message("Invalid userId", 400);
+      return;
+    } else if (p.length != 1) {
+      out.send_message("User not found", 400);
+      return;
+    } else {
+      var p1 = p[0];
       console.log("Current user : ");
       console.log(p);
-      console.log("TOKEN: " + p.token + " | " + token);
-      if (p.token != token) {
-        out.description = "Invalid token";
+      console.log("TOKEN: " + p1.token + " | " + token);
+      if (p1.token != token) {
+        out.send_message("Invalid Token", 400);
+        return;
       } else {
         // USER IS FETCHED CORRECTLY
         // CHECK FOR THE CORRESPONDING EVENT INSTANCES FOR THE IDS
         var participate = await Event.find({
-          id: { $in: p.participate.map(({ eventId }) => eventId) },
+          id: { $in: p1.participate.map((eventId) => eventId) },
         });
         console.log("The events the user is participating is :-");
         console.log(participate);
-        out.status = 200;
-        out.description = "User found";
-        out.content = {
-          userId: p.userId,
-          name: p.name,
-          email: p.email,
-          dob: p.dob,
-          course: p.course,
-          phone: p.phone,
-          picture: p.picture,
+        out.send_response(200, "User found", {
+          userId: p1.userId,
+          name: p1.name,
+          email: p1.email,
+          dob: p1.dob,
+          course: p1.course,
+          phone: p1.phone,
+          picture: p1.picture,
           participate: participate,
-        };
+        });
+        return;
       }
     }
-    res.json(out);
-    return;
   } catch (e) {
     console.log("Error occured");
     console.log(e);
-    out.status = 500;
-    out.description = "Error occured when getting details";
-    out.error = e;
-    res.json(out);
+    out.send_500_response();
     return;
   }
 });
 
 // ROUTE : /API/USER/LOGIN (POST)
 
-router.post("/login", async (req, res) => {
+userRouter.post("/login", async (req, res) => {
   console.log("Login request");
   var { email = null, aud = null, password = null } = req.body;
-  var out = { status: 400 };
-  if (email == null) out.description = "Email not provided";
-  else if (aud == null && password == null)
-    out.description = "Aud|Pass not provided";
-  else out.status = 200;
+  var out = new CustomResponse(res);
+  if (email == null) {
+    out.send_message("Email not found", 400);
+    return;
+  } else if (aud == null && password == null) {
+    out.send_message("Aud|Pass not provided", 400);
+    return;
+  }
   if (aud != null && aud != env.CLIENT_ID) {
     // CHECK THE CLIENT ID IS MATCHING (IN CASE OF GOOGLE LOGIN)
-    out.status = 400;
-    out.description = "Unknown client";
-    out.error = "Invalid Request";
-    res.json(out);
+    out.send_message("Invalid Request : Client Error");
     return;
   }
   var al = false;
-  if (out.status != 200) {
-    out.error = "Invalid Request";
-    res.json(out);
-    return;
-  } else {
-    // FIND THE USER
-    await User.find({ email: email }).then(async (p) => {
-      console.log("Login request");
-      console.log(p);
-      al = await loginAction(p, res, password);
-    });
-  }
+  // FIND THE USER
+  await User.find({ email: email }).then(async (p: UserType[]) => {
+    console.log("Login request");
+    console.log(p);
+    al = await loginAction(p, res, password);
+  });
+
   if (!al) {
     // invalid responce from loginaction function
     console.log("Not logged in");

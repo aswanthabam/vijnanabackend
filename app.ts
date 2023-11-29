@@ -1,17 +1,18 @@
+import { NextFunction, Request, Response } from "express";
+import mongoose from "mongoose";
 var env = process.env;
-var express = require("express");
-var path = require("path");
+import path from "path";
+import express from "express";
+import { indexRouter } from "./routes";
+import { adminApiRouter } from "./routes/api/admin";
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
-var mongoose = require("mongoose");
 var cors = require("cors");
 require("dotenv").config();
 
-var indexRouter = require("./routes/index");
 var userRouter = require("./routes/api/user");
 var adminRouter = require("./routes/admin");
 var eventRouter = require("./routes/api/event");
-var adminApiRouter = require("./routes/api/admin");
 
 var app = express();
 
@@ -22,8 +23,8 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use(function (req, res, next) {
-  res.header("Access-Control-Allow-Credentials", true);
+app.use(function (req: Request, res: Response, next: NextFunction) {
+  res.header("Access-Control-Allow-Credentials", "true");
   res.header("Access-Control-Allow-Origin", req.headers.origin);
   res.header(
     "Access-Control-Allow-Methods",
@@ -42,10 +43,10 @@ app.use("/api/admin", adminApiRouter);
 app.use("/api/event", eventRouter);
 app.use("/admin", adminRouter);
 
-const uri = env.DB_URL;
+const uri: string = env.DB_URL!;
 mongoose
-  .connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then((result) => {
+  .connect(uri, { useNewUrlParser: true, useUnifiedTopology: true } as any)
+  .then(() => {
     console.log("CONNECTED TO DB");
   })
   .catch((err) => {
@@ -53,4 +54,4 @@ mongoose
     console.log(err);
   });
 
-app.listen(env.PORT || 8000, "0.0.0.0");
+app.listen(env.PORT || 8000, "0.0.0.0" as any);

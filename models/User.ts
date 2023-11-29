@@ -1,5 +1,4 @@
-const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+import mongoose, { InferSchemaType, Schema, Types } from "mongoose";
 
 const userSchema = new Schema(
   {
@@ -41,7 +40,7 @@ const userSchema = new Schema(
       required: true,
     },
     teams: {
-      type: mongoose.ObjectId,
+      type: Types.ObjectId,
       ref: "Teams",
     },
     participate: [{ type: Schema.Types.ObjectId, ref: "EventRegs" }],
@@ -54,6 +53,6 @@ const userSchema = new Schema(
   },
   { timestamps: true }
 );
-const item = mongoose.model("Users", userSchema);
+export const User = mongoose.model("Users", userSchema);
 
-module.exports = item;
+export type UserType = InferSchemaType<typeof userSchema>;

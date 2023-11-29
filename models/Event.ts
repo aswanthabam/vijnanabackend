@@ -1,6 +1,4 @@
-const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
-
+import mongoose, { Schema, Types } from "mongoose";
 const eventSchema = new Schema(
   {
     id: {
@@ -53,14 +51,12 @@ const eventSchema = new Schema(
       type: Boolean,
       default: false,
     },
-    participants: [{ type: mongoose.ObjectId, ref: "EventRegs" }],
+    participants: [{ type: Types.ObjectId, ref: "EventRegs" }],
     teams: {
-      type: [mongoose.ObjectId],
+      type: [Types.ObjectId],
       ref: "Teams",
     },
   },
   { timestamps: true }
 );
-const item = mongoose.model("Events", eventSchema);
-
-module.exports = item;
+export const Event = mongoose.model("Events", eventSchema);

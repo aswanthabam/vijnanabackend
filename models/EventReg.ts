@@ -1,5 +1,4 @@
-const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+import mongoose, { Schema } from "mongoose";
 
 const eventRegSchema = new Schema({
   eventId: {
@@ -14,6 +13,4 @@ const eventRegSchema = new Schema({
     type: Date,
   },
 });
-const item = mongoose.model("EventRegs", eventRegSchema);
-
-module.exports = item;
+export const EventReg = mongoose.model("EventRegs", eventRegSchema);

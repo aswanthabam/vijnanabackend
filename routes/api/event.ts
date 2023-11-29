@@ -1,58 +1,58 @@
 const env = process.env
-var express = require('express');
-const mongoose = require("mongoose");
-
-const User = require("../../models/User");
-const Admin = require("../../models/Admin");
-const Event = require("../../models/Event");
-const EventReg = require("../../models/EventReg");
+import { Request, Response, Router } from "express";
+import mongoose, { Types } from "mongoose";
+import { User, UserType } from "../../models/User";
+import { Admin } from "../../models/Admin";
+import { Event } from "../../models/Event";
+import { EventReg } from "../../models/EventReg";
+import { CustomResponse } from "../../response";
 
 //
-var router = express.Router();
+export const eventRouter = Router();
 
 // ROUTE : /API/EVENT/REGISTER (POST)
 
-router.post("/register",async (req,res) => {
+eventRouter.post("/register",async (req: Request,res: Response) => {
   // REGISTER TO EVENT
   var {id = null, userId=null} = req.body;
-  var out = {status:400};
-  if(id == null) out.description = "ID not provided";
-  else if(userId == null) out.description = "UserID not provided";
-  else out.status = 200;
-  if(out.status != 200) {
-    // NOT A VALID REQUEST
-    res.json(out);
+  var out = new CustomResponse(res);
+  if (id == null && userId == null) {
+  if(id == null) out.set_data_key('id',"ID not provided");
+  if(userId == null) out.set_data_key('userId',"UserID not provided");
+    out.set_message("Invalid Request");
+    out.send_failiure_response()
     return;
-  }
+}
+  
   console.log("Registeration to event "+id);
   console.log("Request is ok");
   try {
     var user = await User.find({userId:userId});
     if(user == null) {
-      out.status = 400;
-      out.description = "User error";
+      out.send_message("User Error",400);
+      return
     }else if(user.length != 1) {
-      out.status = 400;
-      out.description = "User error";
+      out.send_message("User Error",400);
+      return
     }else {
       // VALID USER
       var event = await Event.find({id:id});
       if(user == null) {
-        out.status = 400;
-        out.description = "Event not found error";
+        out.send_message("Event not found error !",400);
+      return;
       }else if(user.length != 1) {
-        out.status = 400;
-        out.description = "Event not found error";
+        out.send_message("Event not found error !",400);
+        return;
       }else {
         // VALID EVENT
-        user = user[0];
-        event = event[0];
+        var user1 = user[0];
+        var event1 = event[0];
         console.log("User instance:-");
         console.log(user);
         console.log("Event instance:-");
         console.log(event);
         // GETS THE EVENT REGISTRATION INSTANCE OF THE PERTICULAR EVENT AND USER
-        var eventReg = await EventReg.find({userId:user .userId,eventId:event.id});
+        var eventReg = await EventReg.find({userId:user1.userId,eventId:event1.id});
         var has = true;
         if(eventReg == null) has = false;
         else if(eventReg.length <= 0) has = false;
@@ -60,57 +60,50 @@ router.post("/register",async (req,res) => {
           // EVENT IS ALREADY REGISTERED
           console.log("Already registered, instance:-");
           console.log(eventReg)
-          out.status = 400;
-          out.description = "Already registered";
+          out.send_message("Already Registered!");
+          return;
         }else {
           // CREAETE A NEW EVENT REGISTRATION INSTANCE
-          var eventReg = new EventReg({
-            userId:user.userId,
-            eventId:event.id,
+          var eventReg2 = new EventReg({
+            userId:user1.userId,
+            eventId:event1.id,
             date:new Date()
           });
-          await eventReg.save();
+          await eventReg2.save();
           // UPDATE THE EVENT AND USER WITH THE PERTICULAR EVENT AND USER 
-          event.participants.push(mongoose.Types.ObjectId(eventReg._id));
-          await event.save();
-          user.participate.push(mongoose.Types.ObjectId(eventReg._id));
-          await user.save();
+          event1.participants.push(new Types.ObjectId(eventReg2._id));
+          await event1.save();
+          user1.participate.push(new Types.ObjectId(eventReg2._id));
+          await user1.save();
           console.log("Registered");
           console.log(eventReg);
-          out.status = 200;
-          out.description = "Successfuly registered";
-          out.content = {
-            userId:user.userId,
-            eventId:event.id,
-            participate:user.participate
-          }
+          out.send_response(200,"Successfuly Registered!",{
+            userId:user1.userId,
+            eventId:event1.id,
+            participate:user1.participate
+          })
+          return
         }
       }
     }
-    res.json(out);
   }catch(e) {
     // UNEXPECTED ERROR IS OCCURED
     console.log("Error Occured");
     console.log(e);
-    out.status = 500;
-    out.description = "Error while fetching";
-    out.error = e;
-    res.json(out);
+    out.send_failiure_response()
     return;
   }
 });
 
 // ROUTE : /API/EVENT/DELETE (GET)
 
-router.post("/delete",async (req,res) =>{
+eventRouter.post("/delete",async (req: Request,res: Response) =>{
   // EVENT DELETION REQUEST FROM THE ADMIN
   var {id = null,token=null} = req.body;
-  var out = {}
+  var out = new CustomResponse(res)
   var admin = false;
   if(id == null){
-    out.status = 400;
-    out.description = "Id not given";
-    res.json(out);
+    out.send_message("ID not given",400)
     return;
   }
   console.log("Deletion "+id+" token "+token);
@@ -119,29 +112,27 @@ router.post("/delete",async (req,res) =>{
     console.log("Checking admin");
     var p = await Admin.find({token:token});
     if(p == null){
-      out.status = 400;
-      out.description = "Invalid token"
+      out.send_message("Invalid Token",400);
+      return
     }else if(p.length != 1){
-      out.status = 400;
-      out.description = "Invalid token"
+      out.send_message("Invalid Token",400);
+      return
     } else {
-      p = p[0];
+      var p1 = p[0];
       var date = new Date();
-      if(date.getFullYear() >= p.expiry.getFullYear() && date.getMonth() >= p.expiry.getDate() && date.getDate() >= p.expiry.getDate() && date.getHours() >= p.expiry.getHours() && date.getMinutes() >= p.expiry.getMinutes()) {
-        out.status = 400;
-        out.description = "Expired token";
+      if(date.getFullYear() >= p1.expiry!.getFullYear() && date.getMonth() >= p1.expiry!.getDate() && date.getDate() >= p1.expiry!.getDate() && date.getHours() >= p1.expiry!.getHours() && date.getMinutes() >= p1.expiry!.getMinutes()) {
+        out.send_message("Expired Token",400);
+      return
       }else admin = true;
     }
     if(!admin) {
       console.log("User is admin ✔️");
-      res.json(out);
+      // res.json(out);
       return;
     }
     console.log("User is not admin ❌");
   }else {
-    out.status = 400;
-    out.description = "Token not given";
-    res.json(out);
+    out.send_message("Token is not given",400);
     return;
   }
   try {
@@ -150,45 +141,37 @@ router.post("/delete",async (req,res) =>{
       try {
         if(err.deletedCount< 1) {
           console.log("Unable to Delete")
-          console.log(err)
-          out.status = 400;
-          out.description = "Unable to delete ";
+          out.send_message("Unable to delete",400)
+          return
         }else {
           console.log("Deleted successfully ")
-          out.status = 200;
-          out.description = "Deleted Successfuly";
-          out.content = p;
+          out.send_response(200,"Deleted Successfuly",p1)
+          return
         }
       }catch(err){
-        out.status = 500;
-        out.description = "Error deleting -";
-        out.error = err;
+        out.send_500_response()
+        return
       }
     });
-    res.json(out);
+    // res.json(out);
     return;
   }catch(e){
     // AN UMNKNOWN ERROR OCCURED
     console.log("Error occured");
     console.log(e)
-    out.status = 500;
-    out.description = "Error fetching data";
-    out.error = e;
-    res.json(out);
+    out.send_500_response()
     return;
   }
 });
 
 // ROUTE : /API/EVENT/GET (GET)
 
-router.get("/get",async (req,res)=>{
+eventRouter.get("/get",async (req,res)=>{
   var {id = null} = req.query;
-  var out = {}
+  var out = new CustomResponse(res)
  // VAR ADMIN = FALSE;
   if(id == null){
-    out.status = 400;
-    out.description = "Id not given";
-    res.json(out);
+    out.send_message("ID not given",400)
     return;
   }
   console.log("Event data get : "+id);
@@ -196,20 +179,17 @@ router.get("/get",async (req,res)=>{
     // FIND ALL EVENTS AND LINK THE PARTICULAR EVENTS WITH EVENTREG
     var p = await Event.find({id:id}).populate("participants");
     if(p == null) {
-      out.status = 400;
-      out.description = "Event not found";
-      res.json(out)
+      out.send_message("Event not found",400)
       return;
     }
     else if(p.length != 1) {
-      out.status = 400;
-      out.description = "Event not found";
+      out.send_message("Event not found",400)
       res.json(out)
       return;
     }
     console.log(p);
     console.log("Populating with user Instance");
-    var participants = (await User.find({userId:{$in:p[0].participants.map(({userId})=>userId)}})).map((user,i) => {
+    var participants = (await User.find({userId:{$in:p[0].participants.map((userId)=>userId)}})).map((user:UserType,i) => {
       return {...user._doc,
       date:p[0].participants[i].date};
     });

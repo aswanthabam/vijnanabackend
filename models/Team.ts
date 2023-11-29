@@ -1,5 +1,4 @@
-const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+import mongoose, { Schema, Types } from "mongoose";
 
 const teamSchema = new Schema(
   {
@@ -13,16 +12,14 @@ const teamSchema = new Schema(
       required: true,
     },
     participate: {
-      type: mongoose.ObjectId,
+      type: Types.ObjectId,
       ref: "Games",
     },
     members: {
-      type: mongoose.ObjectId,
+      type: Types.ObjectId,
       ref: "Users",
     },
   },
   { timestamps: true }
 );
-const item = mongoose.model("Teams", teamSchema);
-
-module.exports = item;
+export const Team = mongoose.model("Teams", teamSchema);

@@ -1,5 +1,6 @@
-var express = require("express");
-var router = express.Router();
+import { Request, Response, Router } from "express";
+export const indexRouter = Router();
+
 var movies = [
   { id: 101, name: "Fight Club", year: 1999, rating: 8.1 },
   { id: 102, name: "Inception", year: 2010, rating: 8.7 },
@@ -7,9 +8,7 @@ var movies = [
   { id: 104, name: "12 Angry Men", year: 1957, rating: 8.9 },
 ];
 
-//Routes will go here
-router.get("/", function (req, res) {
+indexRouter.get("/", function (req: Request, res: Response) {
   console.log(req.cookies);
   res.json(movies);
 });
-module.exports = router;
