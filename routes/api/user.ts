@@ -2,56 +2,52 @@ const env = process.env;
 import { Request, Response, Router } from "express";
 import mongoose from "mongoose";
 import { CustomResponse } from "../../response";
-import { User, UserType } from "../../models/User";
+import { User, UserI, UserType } from "../../models/User";
 import { Event } from "../../models/Event";
 
 export const userRouter = Router();
 
 // COMMON FUNCTION FOR USER LOGIN (user instance,res for sending responce,password in case of non google login)
-const loginAction = async (p: UserType[], res: Response, password = null) => {
-  var out = {};
+const loginAction = async (p: Array<UserI>, res: Response, password = null) => {
+  var out = new CustomResponse(res);
   console.log("In loginAction function..");
   try {
     if (p == null) return false;
     if (p.length < 1) return false;
     else if (p.length > 1) {
-      out.status = 500;
-      out.description =
-        "Multiple users with same email. Please report to admin. Aswanth V C";
-      out.error = "uniqueness error";
-      console.log("Multiple users with same email. ");
-      res.json(out);
+      out.send_message(
+        "Multiple users with email. Please report to admin.",
+        500
+      );
+      console.log("Multiple users with email");
       return true;
     } else {
-      p = p[0];
+      var p1: UserI = p[0];
       console.log(p);
       // IN CASE THE USER IS TRYING TO LOGIN WITH PASSWORD OF A GOOGLE SIGN IN METHOD
       if (
-        !(password == null && p.password == null) &&
-        (password == null || p.password == null || password != p.password)
+        !(password == null && p1.password == null) &&
+        (password == null || p1.password == null || password != p1.password)
       ) {
-        out.status = 400;
-        out.description =
-          "Invalid password " + (p.password == null ? "(Google Method)" : "");
-        res.json(out);
+        out.send_message(
+          "Invalid password " + (p1.password == null ? "(Google Method)" : ""),
+          400
+        );
         console.log("Trying to login with password. (Google method required");
         return true;
       }
       var date = new Date();
-      out.status = 200;
-      out.description = "User authentication successful ";
-      var date = new Date();
       var token = null;
       // CHECK FOR THE TOKEN EXPIRY
       if (
-        p.token == null ||
-        p.token == undefined ||
-        p.expiry == null ||
-        p.expiry == undefined
+        p1.token == null ||
+        p1.token == undefined ||
+        p1.expiry == null ||
+        p1.expiry == undefined
       ) {
         // IF EXPIRED CREATE NEW TOKEN
         token = btoa(
-          email +
+          p1.email +
             "D" +
             date.getDate() +
             "M" +
@@ -67,13 +63,13 @@ const loginAction = async (p: UserType[], res: Response, password = null) => {
             "CL"
         ).replace("=", "");
         date.setDate(date.getDate() + 14);
-        p.token = token;
-        p.expiry = date;
-        await p.save();
+        p1.token = token;
+        p1.expiry = date;
+        await p1.save();
       } else {
         // USE THE OLD TOKEN
-        token = p.token;
-        date = p.expiry;
+        token = p1.token;
+        date = p1.expiry;
       }
 
       console.log("TOKEN : " + token);
@@ -91,26 +87,20 @@ const loginAction = async (p: UserType[], res: Response, password = null) => {
           ":" +
           date.getSeconds()
       );
-      out.content = {
+      out.send_response(200, "User Authentication Successfuly !", {
         token: token,
         expiry: date,
-        userId: p.userId,
-      };
+        userId: p1.userId,
+      });
       console.log("User authentication successful. Tokens send");
-      res.json(out);
       return true;
     }
   } catch (e) {
     console.log("Error occured");
     console.log(e);
-    out.status = 500;
-    out.description =
-      "Unable to login. the user was already created but an error occured when loging in. report this issue to admin. Aswanth v C";
-    out.error = e;
-    res.json(out);
+    out.send_500_response();
     return true;
   }
-  return false;
 };
 
 // ROUTE : /API/USEER/GETMYDETAILS
@@ -193,7 +183,7 @@ userRouter.post("/login", async (req, res) => {
   }
   var al = false;
   // FIND THE USER
-  await User.find({ email: email }).then(async (p: UserType[]) => {
+  await User.find({ email: email }).then(async (p: Array<UserI>) => {
     console.log("Login request");
     console.log(p);
     al = await loginAction(p, res, password);
@@ -202,16 +192,14 @@ userRouter.post("/login", async (req, res) => {
   if (!al) {
     // invalid responce from loginaction function
     console.log("Not logged in");
-    out.status = 400;
-    out.description = "User not logged in";
-    res.json(out);
+    out.send_message("User not logged in!", 400);
     return;
   }
 });
 
 // ROUTE :/API/USER/CREATE (POST)
 
-router.post("/create", async (req, res) => {
+userRouter.post("/create", async (req, res) => {
   console.log("Create user request");
   var {
     name = null,
@@ -223,46 +211,42 @@ router.post("/create", async (req, res) => {
     password = null,
     year = 1,
   } = req.body;
-  var out = { status: 400 };
-  if (name == null) out.description = "Name not provided";
-  else if (email == null) out.description = "Email not provided";
-  else out.status = 200;
-  var al = false;
-  if (out.status != 200) {
-    out.error = "Invalid Request";
-    res.json(out);
+  var out = new CustomResponse(res);
+  if (name == null) {
+    out.send_message("Name not provided", 400);
     return;
-  } else {
-    // CHECK IF A USER ALREADY CREATED.  IF CREATED LOGIN THAAT PARTICULAR USER, IN GOOGLE METHID
-    await User.find({ email: email }).then(async (p) => {
-      console.log("Create user: Uniqueness check:-");
-      console.log(p);
-      al = await loginAction(p, res);
-    });
   }
+  if (email == null) {
+    out.send_message("Email not provided", 400);
+    return;
+  }
+  var al = false;
+  // CHECK IF A USER ALREADY CREATED.  IF CREATED LOGIN THAAT PARTICULAR USER, IN GOOGLE METHID
+  await User.find({ email: email }).then(async (p) => {
+    console.log("Create user: Uniqueness check:-");
+    console.log(p);
+    al = await loginAction(p, res);
+  });
   // IF ALREADY RETURN
   if (al) {
     console.log("Aleady registered");
     return;
   }
-  out.status = 400;
-  if (picture == null) out.description = "Picture not provided";
-  else if (course == null) out.description = "Course not provided";
-  else if (aud == null && password == null)
-    out.description = "Aud|Pass not provided";
-  else out.status = 200;
-  if (out.status != 200) {
-    out.error = "Invalid Request";
-    res.json(out);
+  // out.status = 400;
+  if (picture == null || course == null || (aud == null && password == null)) {
+    if (picture == null) out.set_data_key("picture", "Picture not provided");
+    if (course == null) out.set_data_key("course", "Course not provided");
+    if (aud == null && password == null)
+      out.set_data_key("password", "Aud|Pass not provided");
+    out.set_message("Invalid Request !");
+    out.send_failiure_response();
     return;
   }
+
   if (aud != null && aud != env.CLIENT_ID) {
     // CHECK THE CLIENT ID IN CASE OF GOOOGLE METHOD
     console.log("Invalid client id");
-    out.status = 400;
-    out.description = "Unknown client";
-    out.error = "Invalid Request";
-    res.json(out);
+    out.send_message("Invalid CLient !");
     return;
   }
   try {
@@ -291,22 +275,17 @@ router.post("/create", async (req, res) => {
             console.log(
               "Error with the uniqueness of users. this may be occured in the server side. "
             );
-            out.status = 500;
-            out.description =
-              "Error with the uniqueness of users. this may be occured in the server side. please contact the admin. (Aswanth V C)";
-            out.error = "uniqueness failed";
-            res.json(out);
+            out.send_message(
+              "Error with the uniqueness of users. this may be occured in the server side. please contact the admin.",
+              500
+            );
           } else {
             id = obj[0].id + 1;
           }
         } catch (e) {
           console.log("Error setting id when creating user");
           console.log(e);
-          out.status = 500;
-          out.description =
-            "User saved!. but unable to complete the process. report this issue to the admin. (Aswanth V C)";
-          out.error = e;
-          res.json(out);
+          out.send_500_response();
           return;
         }
       });
@@ -352,26 +331,19 @@ router.post("/create", async (req, res) => {
     user.token = token;
     user.expiry = date;
     await user.save(); // SAVE
-    out.status = 200;
-    out.description = "User created successfully ";
-    out.content = {
+    out.send_response(200, "User created successfully", {
       token: token,
       expiry: date,
       userId: userId,
-    };
+    });
+
     console.log("USer creayed");
-    res.json(out);
     return;
   } catch (e) {
     // UNEXPECTED ERROR
     console.log("error occured");
     console.log(e);
-    out.status = 500;
-    out.error = "Error saving (" + e + ")";
-    out.description = "Unable to save the user instance";
-    res.json(out);
+    out.send_500_response();
     return;
   }
 });
-
-module.exports = router;

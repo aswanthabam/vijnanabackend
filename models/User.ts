@@ -1,6 +1,22 @@
-import mongoose, { InferSchemaType, Schema, Types } from "mongoose";
+import mongoose, { InferSchemaType, Model, Schema, Types } from "mongoose";
 
-const userSchema = new Schema(
+export interface UserType extends Document {
+  id: number;
+  password: string;
+  userId: string;
+  email: string;
+  name: string;
+  dob: Date;
+  picture: string;
+  course: string;
+  year: number;
+  phone: string;
+  teams: any;
+  participate: [Types.ObjectId];
+  token: string;
+  expiry: Date;
+}
+const userSchema = new Schema<UserType>(
   {
     id: {
       type: Number,
@@ -50,9 +66,16 @@ const userSchema = new Schema(
     expiry: {
       type: Date,
     },
+    dob: {
+      type: Date,
+      required: false,
+    },
   },
   { timestamps: true }
 );
-export const User = mongoose.model("Users", userSchema);
-
-export type UserType = InferSchemaType<typeof userSchema>;
+export type UserI = UserType & mongoose.Document;
+// export type UserType = DocumentType<typeof userSchema>;
+export const User: Model<UserType> = mongoose.model<UserType>(
+  "Users",
+  userSchema
+);

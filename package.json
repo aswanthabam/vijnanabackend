@@ -11,6 +11,7 @@
     "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/index.js\""
   },
   "dependencies": {
+    "@typegoose/typegoose": "^12.0.0",
     "cookie-parser": "1.4.6",
     "cors": "^2.8.5",
     "debug": "^4.3.4",

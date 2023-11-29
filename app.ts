@@ -5,13 +5,14 @@ import path from "path";
 import express from "express";
 import { indexRouter } from "./routes";
 import { adminApiRouter } from "./routes/api/admin";
+import { userRouter } from "./routes/api/user";
+import { adminRouter } from "./routes/admin";
+
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 var cors = require("cors");
 require("dotenv").config();
 
-var userRouter = require("./routes/api/user");
-var adminRouter = require("./routes/admin");
 var eventRouter = require("./routes/api/event");
 
 var app = express();
