@@ -30,38 +30,50 @@ export class CustomResponse {
     }
   }
   set_data_key(key: string, value: string | {} | []) {
-    if (this.response.data && typeof this.response.data == typeof {}) {
-      (this.response.data as any)[key] = value;
-    }
+    if (!this.response.data) this.response.data = {};
+    (this.response.data as any)[key] = value;
   }
   set_message(message: string) {
     if (this.response) {
       this.response.message = message;
     }
   }
-  send_failiure_response(status: number = 400) {
+
+  _send(status: number): boolean {
+    if (!this.res.headersSent) {
+      this.res.json(this.response).status(status);
+      return true;
+    } else {
+      console.log("Headers Already Sent !!!");
+      return false;
+    }
+  }
+  send_failiure_response(status: number = 400): boolean {
     this.response.status = "failed";
-    return this.res.json(this.response).status(status);
+    return this._send(status);
   }
-
-  send_success_response(status: number = 200) {
+  send_success_response(status: number = 200): boolean {
     this.response.status = "success";
-    return this.res.json(this.response).status(status);
+    return this._send(status);
   }
 
-  send_500_response() {
+  send_500_response(): boolean {
     this.response.status = "failed";
     this.response.message = "Unexpected error occured! Please Contact admin";
-    return this.res.json(this.response).status(500);
+    return this._send(500);
   }
-  send_message(message: string, status: number = 200) {
+  send_message(message: string, status: number = 200): boolean {
     this.response.status = status == 200 ? "success" : "failed";
     this.response.message = message;
-    return this.res.json(this.response).status(status);
+    return this._send(status);
   }
-  send_response(status: number, message: string, data?: {} | [] | undefined) {
+  send_response(
+    status: number,
+    message: string,
+    data?: {} | [] | undefined
+  ): boolean {
     this.response.message = message;
     this.response.data = data;
-    return this.res.json(this.response).status(status);
+    return this._send(status);
   }
 }

@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, Response, Express } from "express";
 import mongoose from "mongoose";
 var env = process.env;
 import path from "path";
@@ -18,7 +18,7 @@ dotenv.config();
 
 var app = express();
 
-app.use(cors);
+app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -55,5 +55,7 @@ mongoose
     console.log("CANT CONNECT TO DB");
     console.log(err);
   });
-
-app.listen(env.PORT || 8000, "0.0.0.0" as any);
+app.listen(env.PORT || 8000, () => {
+  console.log("Server is running ...");
+  return;
+});

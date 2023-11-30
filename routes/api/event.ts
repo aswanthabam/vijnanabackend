@@ -333,20 +333,20 @@ eventRouter.post("/edit",async (req,res) => {
 
 // ROUTE : /API/EVENT/CREATE
 
-eventRouter.post("/create",async (req,res) => {
+eventRouter.post("/create",async (req: Request,res: Response) => {
   console.log("Create event request")
   var {name=null, description=null,date=null,type=null,image=null,maxPart=1,minPart=1,poster=null,docs=null,is_reg=true,closed=false} = req.body;
   var out = new CustomResponse(res)
   if (name == null || description == null || date == null || type == null || image == null){
-  if(name == null) out.set_data_key('name',"Name not provided");
-  if(description == null) out.set_data_key('description',"description not provided");
-  if(date == null) out.set_data_key('date',"date not provided");
-  if(type == null) out.set_data_key('type',"type not provided");
-  if(image == null) out.set_data_key('image',"image not provided");
-  out.set_message("Invalid Request");
-  out.send_failiure_response()
-  return
-}
+    if(name == null) out.set_data_key('name',"Name not provided");
+    if(description == null) out.set_data_key('description',"description not provided");
+    if(date == null) out.set_data_key('date',"date not provided");
+    if(type == null) out.set_data_key('type',"type not provided");
+    if(image == null) out.set_data_key('image',"image not provided");
+    out.set_message("Invalid Request");
+    out.send_failiure_response();
+    return;
+  }
 
   try{
     // CREATE AN ID FPR THE EVENT
@@ -366,11 +366,14 @@ eventRouter.post("/create",async (req,res) => {
       is_reg:is_reg,
       closed:closed
     });
-    await ev.save(); // save
+    await ev.save().catch(err => {
+      out.send_message("Data validation failed! "+err.errors)
+    }); // save
     out.send_response(200,"Event Created ",ev)
     console.log("Event created");
     return;
   }catch(e){
+    console.log(e)
     out.send_500_response()
     return;
   }
