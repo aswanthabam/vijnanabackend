@@ -1,6 +1,12 @@
-import mongoose, { Schema, Types } from "mongoose";
-
-const teamSchema = new Schema(
+import mongoose, { Schema, Types, Document } from "mongoose";
+import { UserI } from "./User";
+export interface TeamType extends Document {
+  id: string;
+  name: string;
+  participate: Schema.Types.ObjectId;
+  members: UserI;
+}
+const teamSchema = new Schema<TeamType>(
   {
     id: {
       type: String,
@@ -22,4 +28,5 @@ const teamSchema = new Schema(
   },
   { timestamps: true }
 );
+export type TeamI = TeamType & Document;
 export const Team = mongoose.model("Teams", teamSchema);

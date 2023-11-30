@@ -1,5 +1,9 @@
-import mongoose, { InferSchemaType, Schema } from "mongoose";
-const adminSchema = new Schema(
+import mongoose, { InferSchemaType, Schema, Document } from "mongoose";
+export interface AdminType extends Document {
+  token: string;
+  expiry: Date;
+}
+const adminSchema = new Schema<AdminType>(
   {
     token: {
       type: String,
@@ -10,6 +14,6 @@ const adminSchema = new Schema(
   },
   { timestamps: true }
 );
-type User = InferSchemaType<typeof adminSchema>;
-
+// type User = InferSchemaType<typeof adminSchema>;
+export type AdminI = AdminType & Document;
 export const Admin = mongoose.model("Admin", adminSchema);

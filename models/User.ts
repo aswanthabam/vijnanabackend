@@ -1,4 +1,5 @@
 import mongoose, { InferSchemaType, Model, Schema, Types } from "mongoose";
+import { EventRegI, EventRegType } from "./EventReg";
 
 export interface UserType extends Document {
   id: number;
@@ -12,10 +13,11 @@ export interface UserType extends Document {
   year: number;
   phone: string;
   teams: any;
-  participate: [Types.ObjectId];
+  participate: [EventRegI];
   token: string;
   expiry: Date;
 }
+
 const userSchema = new Schema<UserType>(
   {
     id: {
@@ -56,7 +58,7 @@ const userSchema = new Schema<UserType>(
       required: true,
     },
     teams: {
-      type: Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "Teams",
     },
     participate: [{ type: Schema.Types.ObjectId, ref: "EventRegs" }],

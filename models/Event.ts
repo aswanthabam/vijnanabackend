@@ -1,5 +1,24 @@
-import mongoose, { Schema, Types } from "mongoose";
-const eventSchema = new Schema(
+import mongoose, { Schema, Types, Document } from "mongoose";
+import { UserI } from "./User";
+import { EventRegI } from "./EventReg";
+export interface EventType extends Document {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  is_reg: boolean;
+  image: string;
+  poster: string;
+  docs: Array<String> | undefined;
+  date: Date;
+  minpart: number;
+  maxpart: number;
+  closed: boolean;
+  is_team: boolean;
+  participants: EventRegI[];
+  teams: Types.ObjectId[];
+}
+const eventSchema = new Schema<EventType>(
   {
     id: {
       type: String,
@@ -29,7 +48,7 @@ const eventSchema = new Schema(
       type: String,
     },
     docs: {
-      type: Array,
+      type: Array<String>,
     },
     date: {
       type: Date,
@@ -51,12 +70,13 @@ const eventSchema = new Schema(
       type: Boolean,
       default: false,
     },
-    participants: [{ type: Types.ObjectId, ref: "EventRegs" }],
+    participants: [{ type: Schema.Types.ObjectId, ref: "EventRegs" }],
     teams: {
-      type: [Types.ObjectId],
+      type: [Schema.Types.ObjectId],
       ref: "Teams",
     },
   },
   { timestamps: true }
 );
+export type EventI = EventType & Document;
 export const Event = mongoose.model("Events", eventSchema);
