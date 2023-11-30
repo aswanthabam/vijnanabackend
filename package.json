@@ -32,14 +32,7 @@
     "nodemon": "^2.0.20",
     "typescript": "^4.9.5"
   },
-  "nodemonConfig": {
-    "env": {
-      "USER": "asw-avc",
-      "PASS": "avc-asw",
-      "ADMIN": "aswanth",
-      "CLIENT_ID": "1025507377861-ksv14u42p6c0bes203hkbki7n56u6v80.apps.googleusercontent.com"
-    }
-  },
+  "nodemonConfig": {},
   "author": "Aswanth V C",
   "license": "ISC"
 }

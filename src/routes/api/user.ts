@@ -212,6 +212,7 @@ userRouter.post("/create", async (req, res) => {
     email = null,
     picture = null,
     phone = null,
+    college = null,
     course = null,
     aud = null,
     password = null,
@@ -234,7 +235,7 @@ userRouter.post("/create", async (req, res) => {
   var p = await User.findOne({ email: email }).exec();
   // .then(async (p) => {
   console.log("Create user: Uniqueness check:-");
-  console.log(p);
+  // console.log(p);
   // al = await loginAction(p, res);
   // });
   // IF ALREADY RETURN
@@ -248,10 +249,14 @@ userRouter.post("/create", async (req, res) => {
     picture == null ||
     course == null ||
     (aud == null && password == null) ||
-    phone == null
+    phone == null ||
+    year == null ||
+    college == null
   ) {
     if (picture == null) out.set_data_key("picture", "Picture not provided");
+    if (college == null) out.set_data_key("college", "College not provided");
     if (course == null) out.set_data_key("course", "Course not provided");
+    if (year == null) out.set_data_key("year", "year not provided");
     if (aud == null && password == null)
       out.set_data_key("password", "Aud|Pass not provided");
     if (phone == null) out.set_data_key("phone", "Phone No not provided");
@@ -262,6 +267,7 @@ userRouter.post("/create", async (req, res) => {
 
   if (aud != null && aud != env.CLIENT_ID) {
     // CHECK THE CLIENT ID IN CASE OF GOOOGLE METHOD
+    console.log("Client ID :", env.CLIENT_ID);
     console.log("Invalid client id");
     await out.send_message("Invalid CLient !");
     return;
@@ -273,9 +279,10 @@ userRouter.post("/create", async (req, res) => {
       email: email,
       picture: picture,
       phone: phone,
+      college: college,
       course: course,
-      password: password,
       year: year,
+      password: password,
     });
     await user.save();
     console.log("User saved temp. creating id");

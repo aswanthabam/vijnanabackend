@@ -9,6 +9,7 @@ export interface UserType extends Document {
   name: string;
   dob: Date;
   picture: string;
+  college: string;
   course: string;
   year: number;
   phone: string;
@@ -45,13 +46,17 @@ const userSchema = new Schema<UserType>(
       type: String,
       required: true,
     },
+    college: {
+      type: String,
+      required: true,
+    },
     course: {
       type: String,
       required: true,
     },
     year: {
       type: Number,
-      default: 1,
+      required: true,
     },
     phone: {
       type: String,
