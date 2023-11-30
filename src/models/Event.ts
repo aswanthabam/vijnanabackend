@@ -6,17 +6,20 @@ export interface EventType extends Document {
   name: string;
   description: string;
   type: string;
-  is_reg: boolean;
   image: string;
-  poster: string;
-  docs: Array<String> | undefined;
   date: Date;
+  poster: string;
+  details: string;
+  docs: Array<String> | undefined;
+  venue: string;
+  reg_link: string | null;
   minpart: number;
   maxpart: number;
   closed: boolean;
+  is_reg: boolean;
   is_team: boolean;
   participants: EventRegI[];
-  teams: Types.ObjectId[];
+  teams: Types.ObjectId[] | null;
 }
 const eventSchema = new Schema<EventType>(
   {
@@ -32,6 +35,18 @@ const eventSchema = new Schema<EventType>(
     description: {
       type: String,
       required: true,
+    },
+    details: {
+      type: String,
+      required: true,
+    },
+    venue: {
+      type: String,
+      required: true,
+    },
+    reg_link: {
+      type: String,
+      required: false,
     },
     type: {
       type: String,
