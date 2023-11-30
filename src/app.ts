@@ -55,9 +55,9 @@ app.use(async function (req: Request, res: Response, next: NextFunction) {
 });
 
 app.use("/", indexRouter);
-app.use("/api/user", userRouter);
-app.use("/api/admin", adminApiRouter);
-app.use("/api/event", eventRouter);
+app.use("/api/v2/users", userRouter);
+app.use("/api/v2/admin", adminApiRouter);
+app.use("/api/v2/events", eventRouter);
 app.use("/admin", adminRouter);
 
 const uri: string = env.DB_URL!;
