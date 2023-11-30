@@ -1,10 +1,11 @@
-import mongoose, { Schema, Types, Document } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 import { UserI } from "./User";
+import { EventI } from "./Event";
 export interface TeamType extends Document {
   id: string;
   name: string;
-  participate: Schema.Types.ObjectId;
-  members: UserI;
+  participate: EventI;
+  members: UserI[];
 }
 const teamSchema = new Schema<TeamType>(
   {
@@ -18,11 +19,11 @@ const teamSchema = new Schema<TeamType>(
       required: true,
     },
     participate: {
-      type: Types.ObjectId,
-      ref: "Games",
+      type: Schema.Types.ObjectId,
+      ref: "Events",
     },
     members: {
-      type: Types.ObjectId,
+      type: [Schema.Types.ObjectId],
       ref: "Users",
     },
   },
