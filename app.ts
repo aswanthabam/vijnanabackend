@@ -7,18 +7,19 @@ import { indexRouter } from "./routes";
 import { adminApiRouter } from "./routes/api/admin";
 import { userRouter } from "./routes/api/user";
 import { adminRouter } from "./routes/admin";
-
-var cookieParser = require("cookie-parser");
-var logger = require("morgan");
-var cors = require("cors");
-require("dotenv").config();
-
-var eventRouter = require("./routes/api/event");
+import { eventRouter } from "./routes/api/event";
+import morgan from "morgan";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import dotenv from "dotenv";
+dotenv.config();
+// var logger = require("morgan");
+// var cors = require("cors");
 
 var app = express();
 
-app.use(cors());
-app.use(logger("dev"));
+app.use(cors);
+app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());

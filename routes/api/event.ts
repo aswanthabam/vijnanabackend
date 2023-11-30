@@ -4,7 +4,7 @@ import mongoose, { Types } from "mongoose";
 import { User, UserI, UserType } from "../../models/User";
 import { Admin } from "../../models/Admin";
 import { Event } from "../../models/Event";
-import { EventReg } from "../../models/EventReg";
+import { EventReg, EventRegI } from "../../models/EventReg";
 import { CustomResponse } from "../../response";
 
 //
@@ -71,9 +71,9 @@ eventRouter.post("/register",async (req: Request,res: Response) => {
           });
           await eventReg2.save();
           // UPDATE THE EVENT AND USER WITH THE PERTICULAR EVENT AND USER 
-          event1.participants.push(new Types.ObjectId(eventReg2._id));
+          event1.participants.push(eventReg2);
           await event1.save();
-          user1.participate.push(new Types.ObjectId(eventReg2._id));
+          user1.participate.push(eventReg2);
           await user1.save();
           console.log("Registered");
           console.log(eventReg);
@@ -189,14 +189,14 @@ eventRouter.get("/get",async (req,res)=>{
     }
     console.log(p);
     console.log("Populating with user Instance");
-    var participants = (await User.find({userId:{$in:p[0].participants.map((userId)=>userId)}})).map((user:any,i) => {
-      return {...user._doc,
+    var participants = (await User.find({userId:{$in:p[0].participants.map((userId)=>userId)}})).map((user: UserI,i) => {
+      return {...user.toJSON(),
       date:p[0].participants[i].date};
     });
     console.log("participants fetched");
     console.log(participants);
     out.send_response(200,"Success",{
-      ...p[0]._doc,
+      ...p[0].toJSON(),
       participants:participants
     })
     return;
