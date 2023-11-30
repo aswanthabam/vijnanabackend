@@ -37,18 +37,19 @@ app.use(async function (req: Request, res: Response, next: NextFunction) {
     "Access-Control-Allow-Headers",
     "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept"
   );
-  try {
-    req.body;
-    var log = new RequestLog({
-      url: req.url,
-      type: req.method,
-      data: JSON.stringify(req.body),
-    });
-    await log.save();
-    res.setHeader("logID", log._id);
-  } catch (err) {
-    console.log("Logging error ");
-    console.log(err);
+  if (env.LOG && env.LOG == "true") {
+    try {
+      var log = new RequestLog({
+        url: req.url,
+        type: req.method,
+        data: JSON.stringify(req.body),
+      });
+      await log.save();
+      res.setHeader("logID", log._id);
+    } catch (err) {
+      console.log("Logging error ");
+      console.log(err);
+    }
   }
   next();
 });

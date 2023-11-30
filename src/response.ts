@@ -1,5 +1,6 @@
 import { Response } from "express";
 import { RequestLog } from "./models/Log";
+import { env } from "process";
 
 export type _Response = {
   status: string;
@@ -41,13 +42,15 @@ export class CustomResponse {
   }
 
   async _send(status: number): Promise<boolean> {
-    var logID = this.res.getHeader("logID");
-    if (logID) {
-      var val = await RequestLog.findOne({ _id: logID }).exec();
-      if (val) {
-        val.response = JSON.stringify(this.response);
-        val.status = status;
-        await val.save();
+    if (env.LOG && env.LOG == "true") {
+      var logID = this.res.getHeader("logID");
+      if (logID) {
+        var val = await RequestLog.findOne({ _id: logID }).exec();
+        if (val) {
+          val.response = JSON.stringify(this.response);
+          val.status = status;
+          await val.save();
+        }
       }
     }
     if (!this.res.headersSent) {
