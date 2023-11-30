@@ -67,10 +67,11 @@ adminApiRouter.post("/is_admin", async (req: Request, res: Response) => {
 adminApiRouter.post("/login", async (req: Request, res: Response) => {
   var { user = null, pass = null } = req.body;
   var out = new CustomResponse(res);
-  if (user == null && pass == null) {
+  if (user == null || pass == null) {
     if (user == null) out.set_data_key("user", "User not provided");
     if (pass == null) out.set_data_key("pass", "Password not provided");
     out.set_message("Invalid Request!");
+    out.send_failiure_response();
     return;
   }
   console.log("ADMIN TOKEN GENERATION");

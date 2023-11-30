@@ -85,6 +85,7 @@ export class CustomResponse {
     message: string,
     data?: {} | [] | undefined
   ): Promise<boolean> {
+    this.response.status = status == 200 ? "success" : "failed";
     this.response.message = message;
     this.response.data = data;
     return await this._send(status);

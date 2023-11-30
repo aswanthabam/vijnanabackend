@@ -3,8 +3,8 @@ import { Request, Response, Router } from "express";
 import mongoose, { Types } from "mongoose";
 import { User, UserI, UserType } from "../../models/User";
 import { Admin } from "../../models/Admin";
-import { Event } from "../../models/Event";
-import { EventReg, EventRegI } from "../../models/EventReg";
+import { Event, EventType } from "../../models/Event";
+import { EventReg, EventRegI, EventRegType } from "../../models/EventReg";
 import { CustomResponse } from "../../response";
 
 //
@@ -16,13 +16,13 @@ eventRouter.post("/register",async (req: Request,res: Response) => {
   // REGISTER TO EVENT
   var {id = null, userId=null} = req.body;
   var out = new CustomResponse(res);
-  if (id == null && userId == null) {
+  if (id == null || userId == null) {
   if(id == null) out.set_data_key('id',"ID not provided");
   if(userId == null) out.set_data_key('userId',"UserID not provided");
     out.set_message("Invalid Request");
     await out.send_failiure_response()
     return;
-}
+  }
   
   console.log("Registeration to event "+id);
   console.log("Request is ok");
@@ -37,10 +37,10 @@ eventRouter.post("/register",async (req: Request,res: Response) => {
     }else {
       // VALID USER
       var event = await Event.find({id:id});
-      if(user == null) {
+      if(event == null) {
         await out.send_message("Event not found error !",400);
       return;
-      }else if(user.length != 1) {
+      }else if(event.length != 1) {
         await out.send_message("Event not found error !",400);
         return;
       }else {
@@ -196,10 +196,10 @@ eventRouter.get("/get",async (req,res)=>{
     });
     console.log("participants fetched");
     console.log(participants);
-    await out.send_response(200,"Success",{
+    await out.send_response(200,"Success",[{
       ...p[0].toJSON(),
       participants:participants
-    })
+    }])
     return;
   }catch(e){
     console.log("Error occured");
@@ -264,18 +264,21 @@ eventRouter.get("/getAll",async (req,res) =>{
         id:cur.id,
         name:cur.name,
         description:cur.description,
+        details:cur.details,
+        venue: cur.venue,
         date:cur.date,
         type:cur.type,
         image:cur.image,
         docs:cur.docs,
-        minPart:cur.minpart,
-        maxPart:cur.maxpart,
+        minpart:cur.minpart,
+        maxpart:cur.maxpart,
         poster:cur.poster,
         is_team:cur.is_team,
         is_reg:cur.is_reg,
         participants:participants,
         closed:cur.closed,
-        teams:admin ? cur.teams : null
+        teams:admin ? cur.teams : null,
+        reg_link: cur.reg_link
       });
     }
     await out.send_response(200,"Successfuly fetched!",data)
@@ -290,7 +293,7 @@ eventRouter.get("/getAll",async (req,res) =>{
 // ROUTE : /API/EVENT/EDIT (POST)
 
 eventRouter.post("/edit",async (req,res) => {
-  var {id=null,name=null, description=null,date=null,type=null,image=null,maxPart=1,minPart=1,poster=null,docs=null,is_reg=true,closed=false} = req.body;
+  var {id=null,name=null,description=null,date=null,type=null,image=null,maxPart=1,minPart=1,poster=null,docs=null,is_reg=true,closed=false,venue=null,details = null, reg_link=null} = req.body;
   var out = new CustomResponse(res);
   if(id == null) {
     await out.send_message("No id given",400)
@@ -318,6 +321,9 @@ eventRouter.post("/edit",async (req,res) => {
       if(minPart != null) ev1.minpart = minPart;
       if(poster != null) ev1.poster = poster;
       if(docs != null) ev1.docs = docs;
+      if(venue != null) ev1.venue = venue;
+      if(details != null) ev1.details = details;
+      if(reg_link != null) ev1.reg_link = reg_link;
       ev1.is_reg = is_reg;
       ev1.closed = closed;
       await ev1.save(); //save
@@ -336,15 +342,19 @@ eventRouter.post("/edit",async (req,res) => {
 
 eventRouter.post("/create",async (req: Request,res: Response) => {
   console.log("Create event request")
-  var {name=null, description=null,date=null,type=null,image=null,maxPart=1,minPart=1,poster=null,docs=null,is_reg=true,closed=false} = req.body;
+  var {name=null,   
+    description=null,date=null,type=null,image=null,maxPart=1,minPart=1,poster=null,docs=null,is_reg=true,closed=false,
+  venue=null,details = null, reg_link=null} = req.body;
   var out = new CustomResponse(res)
   // validate data
-  if (name == null || description == null || date == null || type == null || image == null){
+  if (name == null || description == null || date == null || type == null || image == null || venue == null || details == null){
     if(name == null) out.set_data_key('name',"Name not provided");
     if(description == null) out.set_data_key('description',"description not provided");
     if(date == null) out.set_data_key('date',"date not provided");
     if(type == null) out.set_data_key('type',"type not provided");
     if(image == null) out.set_data_key('image',"image not provided");
+    if(venue == null) out.set_data_key('venue',"venue not provided");
+    if(details == null) out.set_data_key('details',"details not provided");
     out.set_message("Invalid Request");
     await out.send_failiure_response();
     return;
@@ -366,7 +376,10 @@ eventRouter.post("/create",async (req: Request,res: Response) => {
       type:type,
       poster:poster,
       is_reg:is_reg,
-      closed:closed
+      closed:closed,
+      venue: venue,
+      details:details,
+      reg_link:reg_link
     });
     // save and validate a event
     try{
