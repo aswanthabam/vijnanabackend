@@ -12,9 +12,14 @@ const loginAction = async (p: Array<UserI>, res: Response, password = null) => {
   var out = new CustomResponse(res);
   console.log("In loginAction function..");
   try {
-    if (p == null) return false;
-    if (p.length < 1) return false;
-    else if (p.length > 1) {
+    if (p == null) {
+      await out.send_message("Invalid email or password !", 400);
+      return false;
+    }
+    if (p.length < 1) {
+      await out.send_message("Invalid email or password !", 400);
+      return false;
+    } else if (p.length > 1) {
       await out.send_message(
         "Multiple users with email. Please report to admin.",
         500
@@ -193,7 +198,7 @@ userRouter.post("/login", async (req, res) => {
   if (!al) {
     // invalid responce from loginaction function
     console.log("Not logged in");
-    await out.send_message("User not logged in!", 400);
+    // await out.send_message("User not logged in!", 400);
     return;
   }
 });
@@ -226,23 +231,30 @@ userRouter.post("/create", async (req, res) => {
   }
   var al = false;
   // CHECK IF A USER ALREADY CREATED.  IF CREATED LOGIN THAAT PARTICULAR USER, IN GOOGLE METHID
-  var p = await User.find({ email: email });
+  var p = await User.findOne({ email: email }).exec();
   // .then(async (p) => {
   console.log("Create user: Uniqueness check:-");
   console.log(p);
-  al = await loginAction(p, res);
+  // al = await loginAction(p, res);
   // });
   // IF ALREADY RETURN
-  if (al) {
+  if (p) {
     console.log("Aleady registered");
+    out.send_message("Email Already registered!");
     return;
   }
   // out.status = 400;
-  if (picture == null || course == null || (aud == null && password == null)) {
+  if (
+    picture == null ||
+    course == null ||
+    (aud == null && password == null) ||
+    phone == null
+  ) {
     if (picture == null) out.set_data_key("picture", "Picture not provided");
     if (course == null) out.set_data_key("course", "Course not provided");
     if (aud == null && password == null)
       out.set_data_key("password", "Aud|Pass not provided");
+    if (phone == null) out.set_data_key("phone", "Phone No not provided");
     out.set_message("Invalid Request !");
     await out.send_failiure_response();
     return;
