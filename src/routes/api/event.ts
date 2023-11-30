@@ -20,7 +20,7 @@ eventRouter.post("/register",async (req: Request,res: Response) => {
   if(id == null) out.set_data_key('id',"ID not provided");
   if(userId == null) out.set_data_key('userId',"UserID not provided");
     out.set_message("Invalid Request");
-    out.send_failiure_response()
+    await out.send_failiure_response()
     return;
 }
   
@@ -29,19 +29,19 @@ eventRouter.post("/register",async (req: Request,res: Response) => {
   try {
     var user = await User.find({userId:userId});
     if(user == null) {
-      out.send_message("User Error",400);
+      await out.send_message("User Error",400);
       return
     }else if(user.length != 1) {
-      out.send_message("User Error",400);
+      await out.send_message("User Error",400);
       return
     }else {
       // VALID USER
       var event = await Event.find({id:id});
       if(user == null) {
-        out.send_message("Event not found error !",400);
+        await out.send_message("Event not found error !",400);
       return;
       }else if(user.length != 1) {
-        out.send_message("Event not found error !",400);
+        await out.send_message("Event not found error !",400);
         return;
       }else {
         // VALID EVENT
@@ -60,7 +60,7 @@ eventRouter.post("/register",async (req: Request,res: Response) => {
           // EVENT IS ALREADY REGISTERED
           console.log("Already registered, instance:-");
           console.log(eventReg)
-          out.send_message("Already Registered!");
+          await out.send_message("Already Registered!");
           return;
         }else {
           // CREAETE A NEW EVENT REGISTRATION INSTANCE
@@ -77,7 +77,7 @@ eventRouter.post("/register",async (req: Request,res: Response) => {
           await user1.save();
           console.log("Registered");
           console.log(eventReg);
-          out.send_response(200,"Successfuly Registered!",{
+          await out.send_response(200,"Successfuly Registered!",{
             userId:user1.userId,
             eventId:event1.id,
             participate:user1.participate
@@ -90,7 +90,7 @@ eventRouter.post("/register",async (req: Request,res: Response) => {
     // UNEXPECTED ERROR IS OCCURED
     console.log("Error Occured");
     console.log(e);
-    out.send_failiure_response()
+    await out.send_failiure_response()
     return;
   }
 });
@@ -103,7 +103,7 @@ eventRouter.post("/delete",async (req: Request,res: Response) =>{
   var out = new CustomResponse(res)
   var admin = false;
   if(id == null){
-    out.send_message("ID not given",400)
+    await out.send_message("ID not given",400)
     return;
   }
   console.log("Deletion "+id+" token "+token);
@@ -112,16 +112,16 @@ eventRouter.post("/delete",async (req: Request,res: Response) =>{
     console.log("Checking admin");
     var p = await Admin.find({token:token});
     if(p == null){
-      out.send_message("Invalid Token",400);
+      await out.send_message("Invalid Token",400);
       return
     }else if(p.length != 1){
-      out.send_message("Invalid Token",400);
+      await out.send_message("Invalid Token",400);
       return
     } else {
       var p1 = p[0];
       var date = new Date();
       if(date.getFullYear() >= p1.expiry!.getFullYear() && date.getMonth() >= p1.expiry!.getDate() && date.getDate() >= p1.expiry!.getDate() && date.getHours() >= p1.expiry!.getHours() && date.getMinutes() >= p1.expiry!.getMinutes()) {
-        out.send_message("Expired Token",400);
+        await out.send_message("Expired Token",400);
       return
       }else admin = true;
     }
@@ -132,34 +132,35 @@ eventRouter.post("/delete",async (req: Request,res: Response) =>{
     }
     console.log("User is not admin ❌");
   }else {
-    out.send_message("Token is not given",400);
+    await out.send_message("Token is not given",400);
     return;
   }
   try {
     // DELETE THE EVENT
-    await Event.deleteOne({id:id}).then((err)=>{
-      try {
-        if(err.deletedCount< 1) {
-          console.log("Unable to Delete")
-          out.send_message("Unable to delete",400)
-          return
-        }else {
-          console.log("Deleted successfully ")
-          out.send_response(200,"Deleted Successfuly",p1)
-          return
-        }
-      }catch(err){
-        out.send_500_response()
+    var err = await Event.deleteOne({id:id});
+    // .then( (err)=>{
+    try {
+      if(err.deletedCount< 1) {
+        console.log("Unable to Delete")
+        await out.send_message("Unable to delete",400)
+        return
+      }else {
+        console.log("Deleted successfully ")
+        await out.send_response(200,"Deleted Successfuly",p1)
         return
       }
-    });
+    }catch(err){
+      await out.send_500_response()
+      return
+    }
+    // });
     // res.json(out);
     return;
   }catch(e){
     // AN UMNKNOWN ERROR OCCURED
     console.log("Error occured");
     console.log(e)
-    out.send_500_response()
+    await out.send_500_response()
     return;
   }
 });
@@ -171,7 +172,7 @@ eventRouter.get("/get",async (req,res)=>{
   var out = new CustomResponse(res)
  // VAR ADMIN = FALSE;
   if(id == null){
-    out.send_message("ID not given",400)
+    await out.send_message("ID not given",400)
     return;
   }
   console.log("Event data get : "+id);
@@ -179,11 +180,11 @@ eventRouter.get("/get",async (req,res)=>{
     // FIND ALL EVENTS AND LINK THE PARTICULAR EVENTS WITH EVENTREG
     var p = await Event.find({id:id}).populate("participants");
     if(p == null) {
-      out.send_message("Event not found",400)
+      await out.send_message("Event not found",400)
       return;
     }
     else if(p.length != 1) {
-      out.send_message("Event not found",400)
+      await out.send_message("Event not found",400)
       res.json(out)
       return;
     }
@@ -195,7 +196,7 @@ eventRouter.get("/get",async (req,res)=>{
     });
     console.log("participants fetched");
     console.log(participants);
-    out.send_response(200,"Success",{
+    await out.send_response(200,"Success",{
       ...p[0].toJSON(),
       participants:participants
     })
@@ -203,7 +204,7 @@ eventRouter.get("/get",async (req,res)=>{
   }catch(e){
     console.log("Error occured");
     console.log(e);
-    out.send_500_response()
+    await out.send_500_response()
     return;
   }
 })
@@ -220,16 +221,16 @@ eventRouter.get("/getAll",async (req,res) =>{
       console.log("Admin Check ");
       var p = await Admin.find({token:token});
       if(p == null){
-        out.send_message("Invalid token",400)
+        await out.send_message("Invalid token",400)
         return
       }else if(p.length != 1){
-        out.send_message("Invalid token",400)
+        await out.send_message("Invalid token",400)
         return
       } else {
         var p1 = p[0];
         var date = new Date();
         if(date.getFullYear() >= p1.expiry!.getFullYear() && date.getMonth() >= p1.expiry!.getDate() && date.getDate() >= p1.expiry!.getDate() && date.getHours() >= p1.expiry!.getHours() && date.getMinutes() >= p1.expiry!.getMinutes()) {
-          out.send_message("Expired token",400)
+          await out.send_message("Expired token",400)
           return;
         }else admin = true;
       }
@@ -242,7 +243,7 @@ eventRouter.get("/getAll",async (req,res) =>{
     if(count == -1) var p2 = await Event.find().populate("participants").sort({date:1});//.then(p =>{
     else var p2 = await Event.find().populate("participants").sort({date:1}).limit(count as number);//.then(p =>{
     if(p2 == null) {
-      out.send_message("no events",400);
+      await out.send_message("no events",400);
       return;
     }
     console.log("Events:-");
@@ -277,12 +278,12 @@ eventRouter.get("/getAll",async (req,res) =>{
         teams:admin ? cur.teams : null
       });
     }
-    out.send_response(200,"Successfuly fetched!",data)
+    await out.send_response(200,"Successfuly fetched!",data)
     return;
   }catch(e){
     console.log("Error occurred ");
     console.log(e);
-    out.send_500_response()
+    await out.send_500_response()
   }
 })
 
@@ -292,7 +293,7 @@ eventRouter.post("/edit",async (req,res) => {
   var {id=null,name=null, description=null,date=null,type=null,image=null,maxPart=1,minPart=1,poster=null,docs=null,is_reg=true,closed=false} = req.body;
   var out = new CustomResponse(res);
   if(id == null) {
-    out.send_message("No id given",400)
+    await out.send_message("No id given",400)
     return
   }
   try{
@@ -300,10 +301,10 @@ eventRouter.post("/edit",async (req,res) => {
     var ev = await Event.find({id:id});
     console.log(ev);
     if(ev == null) {
-      out.send_message("NO event witht the ID",400)
+      await out.send_message("NO event witht the ID",400)
       return
     }else if(ev.length != 1) {
-      out.send_message("NO event witht the ID",400)
+      await out.send_message("NO event witht the ID",400)
       return
     }else {
       var ev1 = ev[0]; 
@@ -320,13 +321,13 @@ eventRouter.post("/edit",async (req,res) => {
       ev1.is_reg = is_reg;
       ev1.closed = closed;
       await ev1.save(); //save
-      out.send_response(200,"Event saved ("+name+")",ev)
+      await out.send_response(200,"Event saved ("+name+")",ev)
       return
     }
   }catch(e){
     console.log("Error occured");
     console.log(e)
-    out.send_500_response()
+    await out.send_500_response()
     return;
   }
 });
@@ -345,7 +346,7 @@ eventRouter.post("/create",async (req: Request,res: Response) => {
     if(type == null) out.set_data_key('type',"type not provided");
     if(image == null) out.set_data_key('image',"image not provided");
     out.set_message("Invalid Request");
-    out.send_failiure_response();
+    await out.send_failiure_response();
     return;
   }
 
@@ -368,16 +369,20 @@ eventRouter.post("/create",async (req: Request,res: Response) => {
       closed:closed
     });
     // save and validate a event
-    await ev.save().catch(err => {
+    try{
+      await ev.save();
+    }catch(err){
+    // .catch(async err => {
       console.log(err)
-      out.send_message("Data validation failed! "+err.errors)
-    }); // save
-    out.send_response(200,"Event Created ",ev)
+      await out.send_message("Data validation failed! "+JSON.stringify(err))
+    }
+    // }); // save
+    await out.send_response(200,"Event Created ",ev)
     console.log("Event created");
     return;
   }catch(e){
     console.log(e)
-    out.send_500_response()
+    await out.send_500_response()
     return;
   }
 });

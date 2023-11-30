@@ -15,7 +15,7 @@ const loginAction = async (p: Array<UserI>, res: Response, password = null) => {
     if (p == null) return false;
     if (p.length < 1) return false;
     else if (p.length > 1) {
-      out.send_message(
+      await out.send_message(
         "Multiple users with email. Please report to admin.",
         500
       );
@@ -29,7 +29,7 @@ const loginAction = async (p: Array<UserI>, res: Response, password = null) => {
         !(password == null && p1.password == null) &&
         (password == null || p1.password == null || password != p1.password)
       ) {
-        out.send_message(
+        await out.send_message(
           "Invalid password " + (p1.password == null ? "(Google Method)" : ""),
           400
         );
@@ -87,7 +87,7 @@ const loginAction = async (p: Array<UserI>, res: Response, password = null) => {
           ":" +
           date.getSeconds()
       );
-      out.send_response(200, "User Authentication Successfuly !", {
+      await out.send_response(200, "User Authentication Successfuly !", {
         token: token,
         expiry: date,
         userId: p1.userId,
@@ -98,7 +98,7 @@ const loginAction = async (p: Array<UserI>, res: Response, password = null) => {
   } catch (e) {
     console.log("Error occured");
     console.log(e);
-    out.send_500_response();
+    await out.send_500_response();
     return true;
   }
 };
@@ -113,7 +113,7 @@ userRouter.post("/getMyDetails", async (req: Request, res: Response) => {
     if (userId == null) out.set_data_key("userId", "UserId not provided");
     if (token == null) out.set_data_key("token", "Token not provided");
     out.set_message("Invalid Request Data !");
-    out.send_failiure_response();
+    await out.send_failiure_response();
     return;
   }
   // else out.status = 200;
@@ -121,10 +121,10 @@ userRouter.post("/getMyDetails", async (req: Request, res: Response) => {
     // FETCH THE USER
     var p = await User.find({ userId: userId }).populate("participate");
     if (p == null) {
-      out.send_message("Invalid userId", 400);
+      await out.send_message("Invalid userId", 400);
       return;
     } else if (p.length != 1) {
-      out.send_message("User not found", 400);
+      await out.send_message("User not found", 400);
       return;
     } else {
       var p1 = p[0];
@@ -132,7 +132,7 @@ userRouter.post("/getMyDetails", async (req: Request, res: Response) => {
       console.log(p);
       console.log("TOKEN: " + p1.token + " | " + token);
       if (p1.token != token) {
-        out.send_message("Invalid Token", 400);
+        await out.send_message("Invalid Token", 400);
         return;
       } else {
         // USER IS FETCHED CORRECTLY
@@ -142,7 +142,7 @@ userRouter.post("/getMyDetails", async (req: Request, res: Response) => {
         });
         console.log("The events the user is participating is :-");
         console.log(participate);
-        out.send_response(200, "User found", {
+        await out.send_response(200, "User found", {
           userId: p1.userId,
           name: p1.name,
           email: p1.email,
@@ -158,7 +158,7 @@ userRouter.post("/getMyDetails", async (req: Request, res: Response) => {
   } catch (e) {
     console.log("Error occured");
     console.log(e);
-    out.send_500_response();
+    await out.send_500_response();
     return;
   }
 });
@@ -170,29 +170,30 @@ userRouter.post("/login", async (req, res) => {
   var { email = null, aud = null, password = null } = req.body;
   var out = new CustomResponse(res);
   if (email == null) {
-    out.send_message("Email not found", 400);
+    await out.send_message("Email not found", 400);
     return;
   } else if (aud == null && password == null) {
-    out.send_message("Aud|Pass not provided", 400);
+    await out.send_message("Aud|Pass not provided", 400);
     return;
   }
   if (aud != null && aud != env.CLIENT_ID) {
     // CHECK THE CLIENT ID IS MATCHING (IN CASE OF GOOGLE LOGIN)
-    out.send_message("Invalid Request : Client Error");
+    await out.send_message("Invalid Request : Client Error");
     return;
   }
   var al = false;
   // FIND THE USER
-  await User.find({ email: email }).then(async (p: Array<UserI>) => {
-    console.log("Login request");
-    console.log(p);
-    al = await loginAction(p, res, password);
-  });
+  var p: Array<UserI> = await User.find({ email: email });
+  // .then(async (p: Array<UserI>) => {
+  console.log("Login request");
+  console.log(p);
+  al = await loginAction(p, res, password);
+  // });
 
   if (!al) {
     // invalid responce from loginaction function
     console.log("Not logged in");
-    out.send_message("User not logged in!", 400);
+    await out.send_message("User not logged in!", 400);
     return;
   }
 });
@@ -220,16 +221,17 @@ userRouter.post("/create", async (req, res) => {
       out.set_data_key("email", "Email not provided");
     }
     out.set_message("Invalid Request!");
-    out.send_failiure_response();
+    await out.send_failiure_response();
     return;
   }
   var al = false;
   // CHECK IF A USER ALREADY CREATED.  IF CREATED LOGIN THAAT PARTICULAR USER, IN GOOGLE METHID
-  await User.find({ email: email }).then(async (p) => {
-    console.log("Create user: Uniqueness check:-");
-    console.log(p);
-    al = await loginAction(p, res);
-  });
+  var p = await User.find({ email: email });
+  // .then(async (p) => {
+  console.log("Create user: Uniqueness check:-");
+  console.log(p);
+  al = await loginAction(p, res);
+  // });
   // IF ALREADY RETURN
   if (al) {
     console.log("Aleady registered");
@@ -242,14 +244,14 @@ userRouter.post("/create", async (req, res) => {
     if (aud == null && password == null)
       out.set_data_key("password", "Aud|Pass not provided");
     out.set_message("Invalid Request !");
-    out.send_failiure_response();
+    await out.send_failiure_response();
     return;
   }
 
   if (aud != null && aud != env.CLIENT_ID) {
     // CHECK THE CLIENT ID IN CASE OF GOOOGLE METHOD
     console.log("Invalid client id");
-    out.send_message("Invalid CLient !");
+    await out.send_message("Invalid CLient !");
     return;
   }
   try {
@@ -267,31 +269,29 @@ userRouter.post("/create", async (req, res) => {
     console.log("User saved temp. creating id");
     // SAVE THE USER AND FETCH ALL USER FOR SETTING ID GET THE NUMBER
     var id = 0;
-    await User.find()
-      .sort({ id: -1 })
-      .limit(1)
-      .then((obj) => {
-        try {
-          if (obj == null) id = 1;
-          else if (obj.length == 0) id = 1;
-          else if (obj.length > 1) {
-            console.log(
-              "Error with the uniqueness of users. this may be occured in the server side. "
-            );
-            out.send_message(
-              "Error with the uniqueness of users. this may be occured in the server side. please contact the admin.",
-              500
-            );
-          } else {
-            id = obj[0].id + 1;
-          }
-        } catch (e) {
-          console.log("Error setting id when creating user");
-          console.log(e);
-          out.send_500_response();
-          return;
-        }
-      });
+    var obj = await User.find().sort({ id: -1 }).limit(1);
+    // .then(async (obj) => {
+    try {
+      if (obj == null) id = 1;
+      else if (obj.length == 0) id = 1;
+      else if (obj.length > 1) {
+        console.log(
+          "Error with the uniqueness of users. this may be occured in the server side. "
+        );
+        await out.send_message(
+          "Error with the uniqueness of users. this may be occured in the server side. please contact the admin.",
+          500
+        );
+      } else {
+        id = obj[0].id + 1;
+      }
+    } catch (e) {
+      console.log("Error setting id when creating user");
+      console.log(e);
+      await out.send_500_response();
+      return;
+    }
+    // });
     var userId = "VIJNANA23-" + (100 + id); // USERID IN FORM OF VIJNANA23-101
     console.log("id is " + id + " userId is " + userId);
     var date = new Date();
@@ -334,7 +334,7 @@ userRouter.post("/create", async (req, res) => {
     user.token = token;
     user.expiry = date;
     await user.save(); // SAVE
-    out.send_response(200, "User created successfully", {
+    await out.send_response(200, "User created successfully", {
       token: token,
       expiry: date,
       userId: userId,
@@ -346,7 +346,7 @@ userRouter.post("/create", async (req, res) => {
     // UNEXPECTED ERROR
     console.log("error occured");
     console.log(e);
-    out.send_500_response();
+    await out.send_500_response();
     return;
   }
 });

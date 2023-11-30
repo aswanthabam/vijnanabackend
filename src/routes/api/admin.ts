@@ -11,7 +11,7 @@ adminApiRouter.post("/is_admin", async (req: Request, res: Response) => {
   var { token = null } = req.body;
   var out = new CustomResponse(res);
   if (token == null) {
-    out.send_message("Token not found !", 400);
+    await out.send_message("Token not found !", 400);
     return;
   }
 
@@ -19,46 +19,47 @@ adminApiRouter.post("/is_admin", async (req: Request, res: Response) => {
   var date = new Date();
   console.log("Today time: " + date.toISOString());
   try {
-    await Admin.find({ token: token }).then((p) => {
-      if (p == null) {
-        out.send_message("Invalid Token", 400);
-        console.log("Invalid token 1 NULL");
-        return;
-      } else if (p.length != 1) {
-        out.send_message("Invalid Token", 400);
-        console.log("Invalid token 2");
+    var p = await Admin.find({ token: token });
+    // .then((p) => {
+    if (p == null) {
+      await out.send_message("Invalid Token", 400);
+      console.log("Invalid token 1 NULL");
+      return;
+    } else if (p.length != 1) {
+      await out.send_message("Invalid Token", 400);
+      console.log("Invalid token 2");
+      return;
+    } else {
+      var p1 = p[0];
+      if (
+        date.getFullYear() >= p1.expiry!.getFullYear() &&
+        date.getMonth() >= p1.expiry!.getDate() &&
+        date.getDate() >= p1.expiry!.getDate() &&
+        date.getHours() >= p1.expiry!.getHours() &&
+        date.getMinutes() >= p1.expiry!.getMinutes()
+      ) {
+        console.log("Expired token");
+        console.log(
+          date.getFullYear() +
+            "/" +
+            date.getMonth() +
+            " | Token expiry: " +
+            p1.expiry!
+        );
+        await out.send_message("Expired Token", 400);
         return;
       } else {
-        var p1 = p[0];
-        if (
-          date.getFullYear() >= p1.expiry!.getFullYear() &&
-          date.getMonth() >= p1.expiry!.getDate() &&
-          date.getDate() >= p1.expiry!.getDate() &&
-          date.getHours() >= p1.expiry!.getHours() &&
-          date.getMinutes() >= p1.expiry!.getMinutes()
-        ) {
-          console.log("Expired token");
-          console.log(
-            date.getFullYear() +
-              "/" +
-              date.getMonth() +
-              " | Token expiry: " +
-              p1.expiry!
-          );
-          out.send_message("Expired Token", 400);
-          return;
-        } else {
-          console.log("Auth success");
-          out.send_response(200, "Token Valid !", {
-            expiry: p1.expiry,
-            valid: true,
-          });
-          return;
-        }
+        console.log("Auth success");
+        await out.send_response(200, "Token Valid !", {
+          expiry: p1.expiry,
+          valid: true,
+        });
+        return;
       }
-    });
+    }
+    // });
   } catch (e) {
-    out.send_500_response();
+    await out.send_500_response();
     return;
   }
 });
@@ -76,10 +77,10 @@ adminApiRouter.post("/login", async (req: Request, res: Response) => {
   console.log("USER :" + user + "|" + env.USER);
   console.log("PASS :" + pass + "|" + env.PASS);
   if (user != env.USER) {
-    out.send_message("User not matched", 400);
+    await out.send_message("User not matched", 400);
     return;
   } else if (pass != env.PASS) {
-    out.send_message("Password Mismatch!", 400);
+    await out.send_message("Password Mismatch!", 400);
     return;
   }
 
@@ -110,14 +111,14 @@ adminApiRouter.post("/login", async (req: Request, res: Response) => {
 
   try {
     await p.save();
-    out.send_response(200, "Logged in!", {
+    await out.send_response(200, "Logged in!", {
       token: token,
       expiry: date,
     });
     return;
   } catch (e) {
     console.log(e);
-    out.send_500_response();
+    await out.send_500_response();
     return;
   }
 });

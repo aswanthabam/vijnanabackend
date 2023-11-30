@@ -12,6 +12,7 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
+import { RequestLog } from "./models/Log";
 dotenv.config();
 // var logger = require("morgan");
 // var cors = require("cors");
@@ -25,7 +26,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use(function (req: Request, res: Response, next: NextFunction) {
+app.use(async function (req: Request, res: Response, next: NextFunction) {
   res.header("Access-Control-Allow-Credentials", "true");
   res.header("Access-Control-Allow-Origin", req.headers.origin);
   res.header(
@@ -36,6 +37,19 @@ app.use(function (req: Request, res: Response, next: NextFunction) {
     "Access-Control-Allow-Headers",
     "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept"
   );
+  try {
+    req.body;
+    var log = new RequestLog({
+      url: req.url,
+      type: req.method,
+      data: JSON.stringify(req.body),
+    });
+    await log.save();
+    res.setHeader("logID", log._id);
+  } catch (err) {
+    console.log("Logging error ");
+    console.log(err);
+  }
   next();
 });
 

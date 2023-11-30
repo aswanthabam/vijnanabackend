@@ -1,4 +1,5 @@
 import { Response } from "express";
+import { RequestLog } from "./models/Log";
 
 export type _Response = {
   status: string;
@@ -39,7 +40,16 @@ export class CustomResponse {
     }
   }
 
-  _send(status: number): boolean {
+  async _send(status: number): Promise<boolean> {
+    var logID = this.res.getHeader("logID");
+    if (logID) {
+      var val = await RequestLog.findOne({ _id: logID }).exec();
+      if (val) {
+        val.response = JSON.stringify(this.response);
+        val.status = status;
+        await val.save();
+      }
+    }
     if (!this.res.headersSent) {
       this.res.json(this.response).status(status);
       return true;
@@ -48,32 +58,32 @@ export class CustomResponse {
       return false;
     }
   }
-  send_failiure_response(status: number = 400): boolean {
+  async send_failiure_response(status: number = 400): Promise<boolean> {
     this.response.status = "failed";
-    return this._send(status);
+    return await this._send(status);
   }
-  send_success_response(status: number = 200): boolean {
+  async send_success_response(status: number = 200): Promise<boolean> {
     this.response.status = "success";
-    return this._send(status);
+    return await this._send(status);
   }
 
-  send_500_response(): boolean {
+  async send_500_response(): Promise<boolean> {
     this.response.status = "failed";
     this.response.message = "Unexpected error occured! Please Contact admin";
-    return this._send(500);
+    return await this._send(500);
   }
-  send_message(message: string, status: number = 200): boolean {
+  async send_message(message: string, status: number = 200): Promise<boolean> {
     this.response.status = status == 200 ? "success" : "failed";
     this.response.message = message;
-    return this._send(status);
+    return await this._send(status);
   }
-  send_response(
+  async send_response(
     status: number,
     message: string,
     data?: {} | [] | undefined
-  ): boolean {
+  ): Promise<boolean> {
     this.response.message = message;
     this.response.data = data;
-    return this._send(status);
+    return await this._send(status);
   }
 }
