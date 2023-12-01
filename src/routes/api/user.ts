@@ -5,6 +5,7 @@ import { CustomResponse } from "../../response";
 import { User, UserI, UserType } from "../../models/User";
 import { Event } from "../../models/Event";
 import jwt from "jsonwebtoken";
+import { authenticated_user, is_authenticated } from "../../request";
 
 export const userRouter = Router();
 
@@ -80,34 +81,18 @@ const loginAction = async (p: Array<UserI>, res: Response, password = null) => {
 
 userRouter.post("/getMyDetails", async (req: Request, res: Response) => {
   console.log("user details fetch");
-  var { userId = null, token = null } = req.body;
   var out = new CustomResponse(res);
-  if (token == null || userId == null) {
-    if (userId == null) out.set_data_key("userId", "UserId not provided");
-    if (token == null) out.set_data_key("token", "Token not provided");
-    out.set_message("Invalid Request Data !");
-    await out.send_failiure_response();
-    return;
-  }
-  // else out.status = 200;
-  try {
-    // FETCH THE USER
-    var p = await User.find({ userId: userId }).populate("participate");
-    if (p == null) {
-      await out.send_message("Invalid userId", 400);
-      return;
-    } else if (p.length != 1) {
-      await out.send_message("User not found", 400);
-      return;
-    } else {
-      var p1 = p[0];
-      console.log("Current user : ");
-      console.log(p);
-      console.log("TOKEN: " + p1.token + " | " + token);
-      if (p1.token != token) {
-        await out.send_message("Invalid Token", 400);
+  if (is_authenticated(req)) {
+    try {
+      // FETCH THE USER
+      var p1 = await authenticated_user(req)!.populate("participate");
+      // var p = await User.find({ userId: userId }).populate("participate");
+      if (p1 == null) {
+        await out.send_message("Invalid userId", 400);
         return;
       } else {
+        console.log("Current user : ");
+        console.log(p1);
         // USER IS FETCHED CORRECTLY
         // CHECK FOR THE CORRESPONDING EVENT INSTANCES FOR THE IDS
         var participate = await Event.find({
@@ -127,13 +112,14 @@ userRouter.post("/getMyDetails", async (req: Request, res: Response) => {
         });
         return;
       }
+    } catch (e) {
+      console.log("Error occured");
+      console.log(e);
+      await out.send_500_response();
+      return;
     }
-  } catch (e) {
-    console.log("Error occured");
-    console.log(e);
-    await out.send_500_response();
-    return;
   }
+  // else out.status = 200;
 });
 
 // ROUTE : /API/USER/LOGIN (POST)
