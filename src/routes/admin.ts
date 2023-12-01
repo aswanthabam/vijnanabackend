@@ -1,11 +1,9 @@
 const env = process.env;
-import { Express, Request, Response, Router } from "express";
-import mongoose from "mongoose";
+import { Request, Response, Router } from "express";
 import { _Response } from "../types";
 import { CustomResponse } from "../response";
 import { User } from "../models/User";
 import { Event } from "../models/Event";
-import { Team } from "../models/Team";
 
 export const adminRouter = Router();
 

@@ -17,7 +17,7 @@ export interface UserType extends Document {
   step: number; // 1
   password: string | null; // 1
   picture: string | null; // 1
-  participate: [EventRegI] | null; // 2
+  participate: [EventRegI]; // 2
   teams: [TeamI] | null; // 2
 }
 

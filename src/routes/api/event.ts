@@ -1,12 +1,11 @@
 const env = process.env
 import { Request, Response, Router } from "express";
-import mongoose, { Types } from "mongoose";
-import { User, UserI, UserType } from "../../models/User";
+import { User, UserI } from "../../models/User";
 import { Admin } from "../../models/Admin";
-import { Event, EventType } from "../../models/Event";
-import { EventReg, EventRegI, EventRegType } from "../../models/EventReg";
+import { Event } from "../../models/Event";
+import { EventReg } from "../../models/EventReg";
 import { CustomResponse } from "../../response";
-import CustomRequest, { authenticated_user, is_authenticated } from "../../request";
+import { authenticated_user, is_authenticated } from "../../request";
 
 //
 export const eventRouter = Router();
@@ -30,7 +29,6 @@ eventRouter.post("/register",async (req: Request,res: Response) => {
   console.log("Registeration to event "+id);
   console.log("Request is ok");
   try {
-    // var user = await User.find({userId:userId});
     if(user1 == null) {
       await out.send_message("User Error",400);
       return
@@ -122,7 +120,6 @@ eventRouter.post("/delete",async (req: Request,res: Response) =>{
     }
     if(!admin) {
       console.log("User is admin ✔️");
-      // res.json(out);
       return;
     }
     console.log("User is not admin ❌");
@@ -133,8 +130,6 @@ eventRouter.post("/delete",async (req: Request,res: Response) =>{
   try {
     // DELETE THE EVENT
     var err = await Event.deleteOne({id:id});
-    
-    // .then( (err)=>{
     try {
       if(err.deletedCount< 1) {
         console.log("Unable to Delete")
@@ -150,8 +145,6 @@ eventRouter.post("/delete",async (req: Request,res: Response) =>{
       await out.send_500_response()
       return
     }
-    // });
-    // res.json(out);
     return;
   }catch(e){
     // AN UMNKNOWN ERROR OCCURED
@@ -167,7 +160,6 @@ eventRouter.post("/delete",async (req: Request,res: Response) =>{
 eventRouter.get("/get",async (req,res)=>{
   var {id = null} = req.query;
   var out = new CustomResponse(res)
- // VAR ADMIN = FALSE;
   if(id == null){
     await out.send_message("ID not given",400)
     return;
@@ -185,7 +177,6 @@ eventRouter.get("/get",async (req,res)=>{
       res.json(out)
       return;
     }
-    // console.log(p);
     console.log("Populating with user Instance");
     var participants = (await User.find({userId:{$in:p[0].participants.map((userId)=>userId)}})).map((user: UserI,i) => {
       return {...user.toJSON(),
@@ -215,7 +206,6 @@ eventRouter.get("/getAll",async (req,res) =>{
   try{
     var admin = false;
     if(token != null) {
-      // CHECK IF ADMIN
       console.log("Admin Check ");
       var p = await Admin.find({token:token});
       if(p == null){
@@ -245,7 +235,6 @@ eventRouter.get("/getAll",async (req,res) =>{
       return;
     }
     console.log("Events:-");
-    // console.log(p2);
     var data = [];
     for(var i = 0;i < p2.length;i++){
       // PUSH EACH EVENT TO THE DATA AND RETURN IT AS RESPONCE
@@ -383,11 +372,9 @@ eventRouter.post("/create",async (req: Request,res: Response) => {
     try{
       await ev.save();
     }catch(err){
-    // .catch(async err => {
       console.log(err)
       await out.send_message("Data validation failed! "+JSON.stringify(err))
     }
-    // }); // save
     await out.send_response(200,"Event Created ",ev)
     console.log("Event created");
     return;
