@@ -1,9 +1,7 @@
 const env = process.env;
 import { Request, Response, Router } from "express";
-import mongoose from "mongoose";
 import { CustomResponse } from "../../response";
-import { User, UserI, UserType } from "../../models/User";
-import { Event } from "../../models/Event";
+import { User, UserI } from "../../models/User";
 import jwt from "jsonwebtoken";
 import { authenticated_user, is_authenticated } from "../../request";
 import { verifyGoogleToken } from "./register";
@@ -84,9 +82,6 @@ userRouter.post("/getMyDetails", async (req: Request, res: Response) => {
         await out.send_message("Invalid userId", 400);
         return;
       } else {
-        // console.log("Current user : ");
-        // console.log(p1);
-        // console.log("The events the user is participating is :-");
         await out.send_response(200, "User found", p1);
         return;
       }
@@ -118,7 +113,6 @@ userRouter.post("/login", async (req, res) => {
     await out.send_message("Aud|Pass not provided", 400);
     return;
   }
-  // FIND THE USER
   var p: Array<UserI> = await User.find({ email: email });
   console.log("Login request");
   console.log(p);

@@ -1,7 +1,5 @@
 const env = process.env;
-import mongoose from "mongoose";
 import { Router, Request, Response } from "express";
-import { User } from "../../models/User";
 import { Admin } from "../../models/Admin";
 import { CustomResponse } from "../../response";
 
@@ -87,7 +85,6 @@ adminApiRouter.post("/login", async (req: Request, res: Response) => {
 
   var date = new Date();
   var token = null;
-  // if(p.token == null || p.token == undefined || p.expiry == null || p.expiry == undefined){
   token = btoa(
     "AdminisAswanth|D" +
       date.getDate() +
