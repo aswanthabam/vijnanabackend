@@ -13,19 +13,44 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
 import { RequestLog } from "./models/Log";
+import CustomRequest from "./request";
+import Jwt from "jsonwebtoken";
+import { User } from "./models/User";
+import { CustomResponse } from "./response";
 dotenv.config();
 // var logger = require("morgan");
 // var cors = require("cors");
 
 var app = express();
-
 app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
-
+app.use(async function (req: Request, res: Response, next: NextFunction) {
+  try {
+    console.log("Token validation middleware");
+    var token =
+      req.body.token ||
+      (req.headers["authorization"] &&
+        req.headers["authorization"].replace("Bearer ", ""));
+    (req as any as CustomRequest).is_authenticated = false;
+    if (token) {
+      var dec = Jwt.verify(token, "mytokenkey");
+      var user = await User.findOne({ email: (dec as any)["email"] as string });
+      if (user) {
+        (req as any as CustomRequest).is_authenticated = true;
+        (req as any as CustomRequest).user = user;
+      }
+    }
+    // console.log(token);
+  } catch (err) {
+    console.log("Error checking token");
+    console.log(err);
+  }
+  next();
+});
 app.use(async function (req: Request, res: Response, next: NextFunction) {
   res.header("Access-Control-Allow-Credentials", "true");
   res.header("Access-Control-Allow-Origin", req.headers.origin);

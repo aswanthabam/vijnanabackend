@@ -6,6 +6,7 @@ import { Admin } from "../../models/Admin";
 import { Event, EventType } from "../../models/Event";
 import { EventReg, EventRegI, EventRegType } from "../../models/EventReg";
 import { CustomResponse } from "../../response";
+import CustomRequest, { authenticated_user, is_authenticated } from "../../request";
 
 //
 export const eventRouter = Router();
@@ -188,7 +189,7 @@ eventRouter.get("/get",async (req,res)=>{
       res.json(out)
       return;
     }
-    console.log(p);
+    // console.log(p);
     console.log("Populating with user Instance");
     var participants = (await User.find({userId:{$in:p[0].participants.map((userId)=>userId)}})).map((user: UserI,i) => {
       return {...user.toJSON(),
@@ -212,6 +213,7 @@ eventRouter.get("/get",async (req,res)=>{
 // ROUTE : /API/EVENT/GETALL (GET)
 
 eventRouter.get("/getAll",async (req,res) =>{
+  
   var {token=null,count=-1} = req.query;
   var out = new CustomResponse(res);
   try{
@@ -247,7 +249,7 @@ eventRouter.get("/getAll",async (req,res) =>{
       return;
     }
     console.log("Events:-");
-    console.log(p2);
+    // console.log(p2);
     var data = [];
     for(var i = 0;i < p2.length;i++){
       // PUSH EACH EVENT TO THE DATA AND RETURN IT AS RESPONCE

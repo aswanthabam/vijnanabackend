@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { CustomResponse } from "../../response";
 import { User, UserI, UserType } from "../../models/User";
 import { Event } from "../../models/Event";
+import jwt from "jsonwebtoken";
 
 export const userRouter = Router();
 
@@ -42,60 +43,27 @@ const loginAction = async (p: Array<UserI>, res: Response, password = null) => {
         return true;
       }
       var date = new Date();
-      var token = null;
-      // CHECK FOR THE TOKEN EXPIRY
-      if (
-        p1.token == null ||
-        p1.token == undefined ||
-        p1.expiry == null ||
-        p1.expiry == undefined
-      ) {
-        // IF EXPIRED CREATE NEW TOKEN
-        token = btoa(
-          p1.email +
-            "D" +
-            date.getDate() +
-            "M" +
-            date.getMonth() +
-            "Y" +
-            date.getFullYear() +
-            "H" +
-            date.getHours() +
-            "M" +
-            date.getMinutes() +
-            "S" +
-            date.getSeconds() +
-            "CL"
-        ).replace("=", "");
-        date.setDate(date.getDate() + 14);
-        p1.token = token;
-        p1.expiry = date;
+      // var token = null;
+      var token = jwt.sign(
+        { userId: p1.userId, email: p1.email },
+        "mytokenkey",
+        {
+          expiresIn: "100h",
+        }
+      );
+      p1.token = token;
+      try {
         await p1.save();
-      } else {
-        // USE THE OLD TOKEN
-        token = p1.token;
-        date = p1.expiry;
+      } catch (err) {
+        console.log(err);
       }
 
       console.log("TOKEN : " + token);
-      console.log(
-        "EXPIRY : " +
-          date.getDate() +
-          "/" +
-          date.getMonth() +
-          "/" +
-          date.getFullYear() +
-          " @" +
-          date.getHours() +
-          ":" +
-          date.getMinutes() +
-          ":" +
-          date.getSeconds()
-      );
+
       await out.send_response(200, "User Authentication Successfuly !", {
-        token: token,
-        expiry: date,
         userId: p1.userId,
+        token: token,
+        // expiry: date,
       });
       console.log("User authentication successful. Tokens send");
       return true;
