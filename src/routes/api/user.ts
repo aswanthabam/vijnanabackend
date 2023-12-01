@@ -11,6 +11,7 @@ import { verifyGoogleToken } from "./register";
 export const userRouter = Router();
 
 // COMMON FUNCTION FOR USER LOGIN (user instance,res for sending responce,password in case of non google login)
+
 const loginAction = async (p: Array<UserI>, res: Response, password = null) => {
   var out = new CustomResponse(res);
   console.log("In loginAction function..");
@@ -31,21 +32,10 @@ const loginAction = async (p: Array<UserI>, res: Response, password = null) => {
       return true;
     } else {
       var p1: UserI = p[0];
-      console.log(p);
-      // IN CASE THE USER IS TRYING TO LOGIN WITH PASSWORD OF A GOOGLE SIGN IN METHOD
-      if (
-        !(password == null && p1.password == null) &&
-        (password == null || p1.password == null || password != p1.password)
-      ) {
-        await out.send_message(
-          "Invalid password " + (p1.password == null ? "(Google Method)" : ""),
-          400
-        );
-        console.log("Trying to login with password. (Google method required");
-        return true;
+      if (p1.password == null || p1.is_google) {
+        await out.send_message("Please sign in using google method !", 400);
+        return false;
       }
-      var date = new Date();
-      // var token = null;
       var token = jwt.sign(
         { userId: p1.userId, email: p1.email },
         "mytokenkey",
@@ -62,9 +52,10 @@ const loginAction = async (p: Array<UserI>, res: Response, password = null) => {
 
       console.log("TOKEN : " + token);
 
-      await out.send_response(200, "User Authentication Successfuly !", {
+      await out.send_response(200, "User Authentication Successful !", {
         userId: p1.userId,
         token: token,
+        step: p1.step,
       });
       console.log("User authentication successful. Tokens send");
       return true;
@@ -77,7 +68,10 @@ const loginAction = async (p: Array<UserI>, res: Response, password = null) => {
   }
 };
 
-// ROUTE : /API/USEER/GETMYDETAILS
+/*
+  Get all the details about the currently logged in user,
+  accept the header bearer token for authenticating
+*/
 
 userRouter.post("/getMyDetails", async (req: Request, res: Response) => {
   console.log("user details fetch");
@@ -90,9 +84,9 @@ userRouter.post("/getMyDetails", async (req: Request, res: Response) => {
         await out.send_message("Invalid userId", 400);
         return;
       } else {
-        console.log("Current user : ");
-        console.log(p1);
-        console.log("The events the user is participating is :-");
+        // console.log("Current user : ");
+        // console.log(p1);
+        // console.log("The events the user is participating is :-");
         await out.send_response(200, "User found", p1);
         return;
       }
@@ -103,35 +97,32 @@ userRouter.post("/getMyDetails", async (req: Request, res: Response) => {
       return;
     }
   } else {
-    out.send_message("User not logged in!", 400);
+    await out.send_message("User not logged in!", 400);
     return;
   }
 });
 
-// ROUTE : /API/USER/LOGIN (POST)
+/*
+  Route for login in using email and password, 
+  token, userId and current step of user will be given as output
+*/
 
 userRouter.post("/login", async (req, res) => {
   console.log("Login request");
-  var { email = null, is_google = false, password = null } = req.body;
+  var { email = null, password = null } = req.body;
   var out = new CustomResponse(res);
   if (email == null) {
     await out.send_message("Email not found", 400);
     return;
-  } else if (!is_google && password == null) {
+  } else if (password == null) {
     await out.send_message("Aud|Pass not provided", 400);
     return;
   }
-  if (is_google) {
-    // CHECK THE CLIENT ID IS MATCHING (IN CASE OF GOOGLE LOGIN)
-    await out.send_message("Invalid Request : Client Error");
-    return;
-  }
-  var al = false;
   // FIND THE USER
   var p: Array<UserI> = await User.find({ email: email });
   console.log("Login request");
   console.log(p);
-  al = await loginAction(p, res, password);
+  await loginAction(p, res, password);
 });
 
 /*
@@ -149,12 +140,12 @@ userRouter.post("/createAccount/complete", async (req, res) => {
     gctian = false,
   } = req.body;
   if (!is_authenticated(req)) {
-    out.send_message("Please Login to continue!", 400);
+    await out.send_message("Please Login to continue!", 400);
     return;
   }
   var user = authenticated_user(req);
   if (!user) {
-    out.send_message("Please Login to continue!", 400);
+    await out.send_message("Please Login to continue!", 400);
     return;
   }
   if (
@@ -170,7 +161,7 @@ userRouter.post("/createAccount/complete", async (req, res) => {
     if (course == null) out.set_data_key("course", "Course is required !");
     if (year == null) out.set_data_key("year", "Year is required!");
     out.set_message("Some of the details are not correct !");
-    out.send_failiure_response();
+    await out.send_failiure_response();
     return;
   }
   user.phone = phone;
@@ -183,20 +174,22 @@ userRouter.post("/createAccount/complete", async (req, res) => {
   user.step = 2;
   try {
     await user.save();
-    out.send_response(200, "Successfully Completed Registration!", {
+    await out.send_response(200, "Successfully Completed Registration!", {
       email: user.email,
+      step: 2,
     });
     return;
   } catch (err) {
     console.log(err);
-    out.send_500_response();
+    await out.send_500_response();
     return;
   }
 });
 
 /*
   create an account from the google sign in method, 
-  credential is given as input and access token is send as output
+  credential is given as input and access token is send as output,
+  can also be used for login with google
 */
 
 userRouter.post("/createAccount/google", async (req, res) => {
@@ -204,14 +197,26 @@ userRouter.post("/createAccount/google", async (req, res) => {
   var { credential = null } = req.body;
   var out = new CustomResponse(res);
   if (credential == null) {
-    out.send_message("Credentials not given", 400);
+    await out.send_message("Credentials not given", 400);
     return;
   }
   try {
     var usr = await verifyGoogleToken(credential);
     var p = await User.findOne({ email: usr.email }).exec();
     if (p) {
-      out.send_message("Email already registed with another account!", 400);
+      /* no additional check to verify the user logged in using google method was done here */
+      var token = jwt.sign(
+        { userId: p.userId, email: usr.email },
+        "mytokenkey",
+        {
+          expiresIn: "100h",
+        }
+      );
+      await out.send_response(200, "Successfuly Logged in as " + p.name + "!", {
+        token: token,
+        userId: p.userId,
+        step: p.step,
+      });
       return;
     }
     var user = new User({
@@ -256,10 +261,11 @@ userRouter.post("/createAccount/google", async (req, res) => {
     await out.send_response(200, "User created successfully", {
       token: token,
       userId: userId,
+      step: 1,
     });
   } catch (err) {
     console.log(err);
-    out.send_500_response();
+    await out.send_500_response();
     return;
   }
 });
@@ -277,13 +283,16 @@ userRouter.post("/createAccount", async (req, res) => {
     if (email == null) out.set_data_key("email", "Email not provided");
     if (password == null) out.set_data_key("password", "Password not provided");
     out.set_message("Request is not complete!");
-    out.send_failiure_response();
+    await out.send_failiure_response();
     return;
   }
   try {
     var p = await User.findOne({ email: email }).exec();
     if (p) {
-      out.send_message("Email already registed with another account!", 400);
+      await out.send_message(
+        "Email already registed with another account!",
+        400
+      );
       return;
     }
     var user = new User({
@@ -328,6 +337,7 @@ userRouter.post("/createAccount", async (req, res) => {
     await out.send_response(200, "User created successfully", {
       token: token,
       userId: userId,
+      step: 1,
     });
   } catch (err) {
     console.log("Error creating account ...");
