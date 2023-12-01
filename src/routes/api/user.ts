@@ -182,19 +182,18 @@ userRouter.post("/create", async (req, res) => {
   // IF ALREADY RETURN
   if (p) {
     console.log("Aleady registered");
-    out.send_message("Email Already registered!");
+    out.send_message("Email Already registered!", 400);
     return;
   }
   // out.status = 400;
   if (
-    picture == null ||
     course == null ||
     (aud == null && password == null) ||
     phone == null ||
     year == null ||
     college == null
   ) {
-    if (picture == null) out.set_data_key("picture", "Picture not provided");
+    // if (picture == null) out.set_data_key("picture", "Picture not provided");
     if (college == null) out.set_data_key("college", "College not provided");
     if (course == null) out.set_data_key("course", "Course not provided");
     if (year == null) out.set_data_key("year", "year not provided");
