@@ -95,21 +95,12 @@ userRouter.post("/getMyDetails", async (req: Request, res: Response) => {
         console.log(p1);
         // USER IS FETCHED CORRECTLY
         // CHECK FOR THE CORRESPONDING EVENT INSTANCES FOR THE IDS
-        var participate = await Event.find({
-          id: { $in: p1.participate.map((eventId) => eventId) },
-        });
+        // var participate = await Event.find({
+        //   id: { $in: p1.participate.map((eventId) => eventId) },
+        // });
         console.log("The events the user is participating is :-");
-        console.log(participate);
-        await out.send_response(200, "User found", {
-          userId: p1.userId,
-          name: p1.name,
-          email: p1.email,
-          dob: p1.dob,
-          course: p1.course,
-          phone: p1.phone,
-          picture: p1.picture,
-          participate: participate,
-        });
+        // console.log(participate);
+        await out.send_response(200, "User found", p1);
         return;
       }
     } catch (e) {

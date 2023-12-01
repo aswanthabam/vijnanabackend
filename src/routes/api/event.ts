@@ -15,43 +15,37 @@ export const eventRouter = Router();
 
 eventRouter.post("/register",async (req: Request,res: Response) => {
   // REGISTER TO EVENT
-  var {id = null, userId=null} = req.body;
   var out = new CustomResponse(res);
-  if (id == null || userId == null) {
-  if(id == null) out.set_data_key('id',"ID not provided");
-  if(userId == null) out.set_data_key('userId',"UserID not provided");
-    out.set_message("Invalid Request");
-    await out.send_failiure_response()
+  if (!is_authenticated(req)){
+    await out.send_message("User not logged in !",400);
+    return 
+  }
+  var {id = null} = req.body;
+  if(id == null){
+    await out.send_message("ID not provided",400);
     return;
   }
-  
+
+  var user1 = authenticated_user(req);
   console.log("Registeration to event "+id);
   console.log("Request is ok");
   try {
-    var user = await User.find({userId:userId});
-    if(user == null) {
-      await out.send_message("User Error",400);
-      return
-    }else if(user.length != 1) {
+    // var user = await User.find({userId:userId});
+    if(user1 == null) {
       await out.send_message("User Error",400);
       return
     }else {
       // VALID USER
-      var event = await Event.find({id:id});
-      if(event == null) {
-        await out.send_message("Event not found error !",400);
-      return;
-      }else if(event.length != 1) {
+      var event1 = await Event.findOne({id:id}).exec();
+      if(event1 == null) {
         await out.send_message("Event not found error !",400);
         return;
       }else {
         // VALID EVENT
-        var user1 = user[0];
-        var event1 = event[0];
         console.log("User instance:-");
-        console.log(user);
+        console.log(user1);
         console.log("Event instance:-");
-        console.log(event);
+        console.log(event1);
         // GETS THE EVENT REGISTRATION INSTANCE OF THE PERTICULAR EVENT AND USER
         var eventReg = await EventReg.find({userId:user1.userId,eventId:event1.id});
         var has = true;
@@ -139,6 +133,7 @@ eventRouter.post("/delete",async (req: Request,res: Response) =>{
   try {
     // DELETE THE EVENT
     var err = await Event.deleteOne({id:id});
+    
     // .then( (err)=>{
     try {
       if(err.deletedCount< 1) {
@@ -146,6 +141,7 @@ eventRouter.post("/delete",async (req: Request,res: Response) =>{
         await out.send_message("Unable to delete",400)
         return
       }else {
+        var err2 = await EventReg.deleteMany({eventId:id});
         console.log("Deleted successfully ")
         await out.send_response(200,"Deleted Successfuly",p1)
         return
