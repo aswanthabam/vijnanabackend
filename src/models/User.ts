@@ -4,20 +4,21 @@ import { TeamI } from "./Team";
 
 export interface UserType extends Document {
   id: number;
-  userId: string;
-  name: string;
-  email: string;
-  phone: string;
-  college: string;
-  course: string;
-  year: number;
-  gctian: boolean;
-  token: string;
-  is_google: boolean;
-  password: string | null;
-  picture: string | null;
-  participate: [EventRegI];
-  teams: [TeamI] | null;
+  userId: string; // 1
+  name: string; // 1
+  email: string; // 1
+  phone: string | null; // 2
+  college: string | null; // 2
+  course: string | null; // 2
+  year: number | null; // 2
+  gctian: boolean | null; // 2
+  token: string | null; // 2
+  is_google: boolean; // 1
+  step: number; // 1
+  password: string | null; // 1
+  picture: string | null; // 1
+  participate: [EventRegI] | null; // 2
+  teams: [TeamI] | null; // 2
 }
 
 const userSchema = new Schema<UserType>(
@@ -50,19 +51,19 @@ const userSchema = new Schema<UserType>(
     },
     college: {
       type: String,
-      required: true,
+      required: false,
     },
     course: {
       type: String,
-      required: true,
+      required: false,
     },
     year: {
       type: Number,
-      required: true,
+      required: false,
     },
     phone: {
       type: String,
-      required: true,
+      required: false,
     },
     teams: {
       type: Schema.Types.ObjectId,
@@ -75,6 +76,10 @@ const userSchema = new Schema<UserType>(
     is_google: {
       type: Boolean,
       default: false,
+    },
+    step: {
+      type: Number,
+      default: 1,
     },
     participate: [{ type: Schema.Types.ObjectId, ref: "EventRegs" }],
     token: {

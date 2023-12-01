@@ -6,6 +6,7 @@ import { User, UserI, UserType } from "../../models/User";
 import { Event } from "../../models/Event";
 import jwt from "jsonwebtoken";
 import { authenticated_user, is_authenticated } from "../../request";
+import { verifyGoogleToken } from "./register";
 
 export const userRouter = Router();
 
@@ -133,90 +134,99 @@ userRouter.post("/login", async (req, res) => {
   al = await loginAction(p, res, password);
 });
 
-// ROUTE :/API/USER/CREATE (POST)
+/*
+  Complete the registration process by entering additional details 
+  phone, college, course, year and is gctian is passed as an input and the email is send back as response data
+*/
 
-userRouter.post("/create", async (req, res) => {
-  console.log("Create user request");
+userRouter.post("/createAccount/complete", async (req, res) => {
+  var out = new CustomResponse(res);
   var {
-    name = null,
-    email = null,
-    picture = null,
     phone = null,
     college = null,
     course = null,
-    password = null,
-    year = 1,
+    year = null,
     gctian = false,
-    is_google = false,
   } = req.body;
-  var out = new CustomResponse(res);
-  if (name == null || email == null) {
-    if (name == null) {
-      out.set_data_key("name", "Name not provided");
-    }
-    if (email == null) {
-      out.set_data_key("email", "Email not provided");
-    }
-    out.set_message("Invalid Request!");
-    await out.send_failiure_response();
+  if (!is_authenticated(req)) {
+    out.send_message("Please Login to continue!", 400);
     return;
   }
-  // CHECK IF A USER ALREADY CREATED.  IF CREATED LOGIN THAAT PARTICULAR USER, IN GOOGLE METHID
-  var p = await User.findOne({ email: email }).exec();
-  console.log("Create user: Uniqueness check:-");
-  // IF ALREADY RETURN
-  if (p) {
-    console.log("Aleady registered");
-    out.send_message("Email Already in use!", 400);
+  var user = authenticated_user(req);
+  if (!user) {
+    out.send_message("Please Login to continue!", 400);
     return;
   }
-  // out.status = 400;
   if (
-    course == null ||
-    (!is_google && password == null) ||
     phone == null ||
+    (!gctian && college == null) ||
+    course == null ||
     year == null ||
-    college == null
+    gctian == null
   ) {
-    // if (picture == null) out.set_data_key("picture", "Picture not provided");
-    if (college == null) out.set_data_key("college", "College not provided");
-    if (course == null) out.set_data_key("course", "Course not provided");
-    if (year == null) out.set_data_key("year", "year not provided");
-    if (!is_google && password == null)
-      out.set_data_key("password", "Aud|Pass not provided");
-    if (phone == null) out.set_data_key("phone", "Phone No not provided");
-    out.set_message("Invalid Request !");
-    await out.send_failiure_response();
+    if (phone == null) out.set_data_key("phone", "Phone number is required!");
+    if (!gctian && college == null)
+      out.set_data_key("college", "College is required!");
+    if (course == null) out.set_data_key("course", "Course is required !");
+    if (year == null) out.set_data_key("year", "Year is required!");
+    out.set_message("Some of the details are not correct !");
+    out.send_failiure_response();
     return;
   }
+  user.phone = phone;
+  user.college = gctian
+    ? "Kodiyeri Balakrishnan Memorial Government College Thalassery"
+    : college;
+  user.course = course;
+  user.year = year;
+  user.gctian = gctian;
+  user.step = 2;
+  try {
+    await user.save();
+    out.send_response(200, "Successfully Completed Registration!", {
+      email: user.email,
+    });
+    return;
+  } catch (err) {
+    console.log(err);
+    out.send_500_response();
+    return;
+  }
+});
 
-  if (is_google) {
-    // CHECK THE CLIENT ID IN CASE OF GOOOGLE METHOD
-    console.log("Client ID :", env.CLIENT_ID);
-    console.log("Invalid client id");
-    await out.send_message("Invalid CLient !");
+/*
+  create an account from the google sign in method, 
+  credential is given as input and access token is send as output
+*/
+
+userRouter.post("/createAccount/google", async (req, res) => {
+  console.log("Google request ");
+  var { credential = null } = req.body;
+  var out = new CustomResponse(res);
+  if (credential == null) {
+    out.send_message("Credentials not given", 400);
     return;
   }
   try {
-    // CREATE NEW USER
+    var usr = await verifyGoogleToken(credential);
+    var p = await User.findOne({ email: usr.email }).exec();
+    if (p) {
+      out.send_message("Email already registed with another account!", 400);
+      return;
+    }
     var user = new User({
-      name: name,
-      email: email,
-      picture: picture,
-      phone: phone,
-      college: college,
-      course: course,
-      year: year,
-      password: password,
-      gctian: gctian,
-      is_google: is_google,
+      name: usr.name,
+      email: usr.email,
+      password: usr.password,
+      picture: usr.password,
+      step: 1,
+      is_google: true,
     });
     await user.save();
-    // SAVE THE USER AND FETCH ALL USER FOR SETTING ID GET THE NUMBER
     var id = 0;
     var obj = await User.find().sort({ id: -1 }).limit(1);
     try {
-      if (obj == null) id = 1;
+      if (!obj) id = 1;
       else if (obj.length == 0) id = 1;
       else if (obj.length > 1) {
         console.log(
@@ -235,27 +245,92 @@ userRouter.post("/create", async (req, res) => {
       await out.send_500_response();
       return;
     }
-    var userId = "VIJNANA23-" + (100 + id); // USERID IN FORM OF VIJNANA23-101
-    var token = jwt.sign({ userId: userId, email: email }, "mytokenkey", {
+    var userId = "VIJNANA24-" + (100 + id);
+    var token = jwt.sign({ userId: userId, email: usr.email }, "mytokenkey", {
       expiresIn: "100h",
     });
-    // SET THE DATA
     user.id = id;
     user.userId = userId;
     user.token = token;
-    await user.save(); // SAVE
+    await user.save();
     await out.send_response(200, "User created successfully", {
       token: token,
       userId: userId,
     });
+  } catch (err) {
+    console.log(err);
+    out.send_500_response();
+    return;
+  }
+});
 
-    console.log("USer creayed");
+/* 
+  Create an account by receiving name, email and password
+  give back the token for authentication, the registration will only complete after the next step (other details entering is complete)
+*/
+
+userRouter.post("/createAccount", async (req, res) => {
+  var { name = null, email = null, password = null } = req.body;
+  var out = new CustomResponse(res);
+  if (name == null || email == null || password == null) {
+    if (name == null) out.set_data_key("name", "Name not provided!");
+    if (email == null) out.set_data_key("email", "Email not provided");
+    if (password == null) out.set_data_key("password", "Password not provided");
+    out.set_message("Request is not complete!");
+    out.send_failiure_response();
     return;
-  } catch (e) {
-    // UNEXPECTED ERROR
-    console.log("error occured");
-    console.log(e);
-    await out.send_500_response();
-    return;
+  }
+  try {
+    var p = await User.findOne({ email: email }).exec();
+    if (p) {
+      out.send_message("Email already registed with another account!", 400);
+      return;
+    }
+    var user = new User({
+      name: name,
+      email: email,
+      password: password,
+      step: 1,
+      is_google: false,
+      picture: null,
+    });
+    await user.save();
+    var id = 0;
+    var obj = await User.find().sort({ id: -1 }).limit(1);
+    try {
+      if (!obj) id = 1;
+      else if (obj.length == 0) id = 1;
+      else if (obj.length > 1) {
+        console.log(
+          "Error with the uniqueness of users. this may be occured in the server side. "
+        );
+        await out.send_message(
+          "Error with the uniqueness of users. this may be occured in the server side. please contact the admin.",
+          500
+        );
+      } else {
+        id = obj[0].id + 1;
+      }
+    } catch (e) {
+      console.log("Error setting id when creating user");
+      console.log(e);
+      await out.send_500_response();
+      return;
+    }
+    var userId = "VIJNANA24-" + (100 + id);
+    var token = jwt.sign({ userId: userId, email: email }, "mytokenkey", {
+      expiresIn: "100h",
+    });
+    user.id = id;
+    user.userId = userId;
+    user.token = token;
+    await user.save();
+    await out.send_response(200, "User created successfully", {
+      token: token,
+      userId: userId,
+    });
+  } catch (err) {
+    console.log("Error creating account ...");
+    console.log(err);
   }
 });
