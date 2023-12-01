@@ -64,7 +64,6 @@ const loginAction = async (p: Array<UserI>, res: Response, password = null) => {
       await out.send_response(200, "User Authentication Successfuly !", {
         userId: p1.userId,
         token: token,
-        // expiry: date,
       });
       console.log("User authentication successful. Tokens send");
       return true;
@@ -86,20 +85,13 @@ userRouter.post("/getMyDetails", async (req: Request, res: Response) => {
     try {
       // FETCH THE USER
       var p1 = await authenticated_user(req)!.populate("participate");
-      // var p = await User.find({ userId: userId }).populate("participate");
       if (p1 == null) {
         await out.send_message("Invalid userId", 400);
         return;
       } else {
         console.log("Current user : ");
         console.log(p1);
-        // USER IS FETCHED CORRECTLY
-        // CHECK FOR THE CORRESPONDING EVENT INSTANCES FOR THE IDS
-        // var participate = await Event.find({
-        //   id: { $in: p1.participate.map((eventId) => eventId) },
-        // });
         console.log("The events the user is participating is :-");
-        // console.log(participate);
         await out.send_response(200, "User found", p1);
         return;
       }
@@ -113,23 +105,22 @@ userRouter.post("/getMyDetails", async (req: Request, res: Response) => {
     out.send_message("User not logged in!", 400);
     return;
   }
-  // else out.status = 200;
 });
 
 // ROUTE : /API/USER/LOGIN (POST)
 
 userRouter.post("/login", async (req, res) => {
   console.log("Login request");
-  var { email = null, aud = null, password = null } = req.body;
+  var { email = null, is_google = false, password = null } = req.body;
   var out = new CustomResponse(res);
   if (email == null) {
     await out.send_message("Email not found", 400);
     return;
-  } else if (aud == null && password == null) {
+  } else if (!is_google && password == null) {
     await out.send_message("Aud|Pass not provided", 400);
     return;
   }
-  if (aud != null && aud != env.CLIENT_ID) {
+  if (is_google) {
     // CHECK THE CLIENT ID IS MATCHING (IN CASE OF GOOGLE LOGIN)
     await out.send_message("Invalid Request : Client Error");
     return;
@@ -140,12 +131,6 @@ userRouter.post("/login", async (req, res) => {
   console.log("Login request");
   console.log(p);
   al = await loginAction(p, res, password);
-  // if (!al) {
-  //   // invalid responce from loginaction function
-  //   console.log("Not logged in");
-  //   // await out.send_message("User not logged in!", 400);
-  //   return;
-  // }
 });
 
 // ROUTE :/API/USER/CREATE (POST)
