@@ -143,18 +143,15 @@ userRouter.post("/login", async (req, res) => {
   var al = false;
   // FIND THE USER
   var p: Array<UserI> = await User.find({ email: email });
-  // .then(async (p: Array<UserI>) => {
   console.log("Login request");
   console.log(p);
   al = await loginAction(p, res, password);
-  // });
-
-  if (!al) {
-    // invalid responce from loginaction function
-    console.log("Not logged in");
-    // await out.send_message("User not logged in!", 400);
-    return;
-  }
+  // if (!al) {
+  //   // invalid responce from loginaction function
+  //   console.log("Not logged in");
+  //   // await out.send_message("User not logged in!", 400);
+  //   return;
+  // }
 });
 
 // ROUTE :/API/USER/CREATE (POST)
@@ -187,11 +184,7 @@ userRouter.post("/create", async (req, res) => {
   var al = false;
   // CHECK IF A USER ALREADY CREATED.  IF CREATED LOGIN THAAT PARTICULAR USER, IN GOOGLE METHID
   var p = await User.findOne({ email: email }).exec();
-  // .then(async (p) => {
   console.log("Create user: Uniqueness check:-");
-  // console.log(p);
-  // al = await loginAction(p, res);
-  // });
   // IF ALREADY RETURN
   if (p) {
     console.log("Aleady registered");
@@ -267,49 +260,19 @@ userRouter.post("/create", async (req, res) => {
     // });
     var userId = "VIJNANA23-" + (100 + id); // USERID IN FORM OF VIJNANA23-101
     console.log("id is " + id + " userId is " + userId);
-    var date = new Date();
-    // GENERATE TOKEN
-    var token = btoa(
-      email +
-        "D" +
-        date.getDate() +
-        "M" +
-        date.getMonth() +
-        "Y" +
-        date.getFullYear() +
-        "H" +
-        date.getHours() +
-        "M" +
-        date.getMinutes() +
-        "S" +
-        date.getSeconds() +
-        "CL"
-    ).replace("=", "");
-    date.setDate(date.getDate() + 14); // Expiry 14 days
+    var token = jwt.sign({ userId: userId, email: email }, "mytokenkey", {
+      expiresIn: "100h",
+    });
     console.log("TOKEN : " + token);
-    console.log(
-      "EXPIRY : " +
-        date.getDate() +
-        "/" +
-        date.getMonth() +
-        "/" +
-        date.getFullYear() +
-        " @" +
-        date.getHours() +
-        ":" +
-        date.getMinutes() +
-        ":" +
-        date.getSeconds()
-    );
     // SET THE DATA
     user.id = id;
     user.userId = userId;
     user.token = token;
-    user.expiry = date;
+    // user.expiry = date;
     await user.save(); // SAVE
     await out.send_response(200, "User created successfully", {
       token: token,
-      expiry: date,
+      // expiry: date,
       userId: userId,
     });
 
