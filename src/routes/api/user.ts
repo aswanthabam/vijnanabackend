@@ -159,9 +159,10 @@ userRouter.post("/create", async (req, res) => {
     phone = null,
     college = null,
     course = null,
-    aud = null,
     password = null,
     year = 1,
+    gctian = false,
+    is_google = false,
   } = req.body;
   var out = new CustomResponse(res);
   if (name == null || email == null) {
@@ -175,20 +176,19 @@ userRouter.post("/create", async (req, res) => {
     await out.send_failiure_response();
     return;
   }
-  var al = false;
   // CHECK IF A USER ALREADY CREATED.  IF CREATED LOGIN THAAT PARTICULAR USER, IN GOOGLE METHID
   var p = await User.findOne({ email: email }).exec();
   console.log("Create user: Uniqueness check:-");
   // IF ALREADY RETURN
   if (p) {
     console.log("Aleady registered");
-    out.send_message("Email Already registered!", 400);
+    out.send_message("Email Already in use!", 400);
     return;
   }
   // out.status = 400;
   if (
     course == null ||
-    (aud == null && password == null) ||
+    (!is_google && password == null) ||
     phone == null ||
     year == null ||
     college == null
@@ -197,7 +197,7 @@ userRouter.post("/create", async (req, res) => {
     if (college == null) out.set_data_key("college", "College not provided");
     if (course == null) out.set_data_key("course", "Course not provided");
     if (year == null) out.set_data_key("year", "year not provided");
-    if (aud == null && password == null)
+    if (!is_google && password == null)
       out.set_data_key("password", "Aud|Pass not provided");
     if (phone == null) out.set_data_key("phone", "Phone No not provided");
     out.set_message("Invalid Request !");
@@ -205,7 +205,7 @@ userRouter.post("/create", async (req, res) => {
     return;
   }
 
-  if (aud != null && aud != env.CLIENT_ID) {
+  if (is_google) {
     // CHECK THE CLIENT ID IN CASE OF GOOOGLE METHOD
     console.log("Client ID :", env.CLIENT_ID);
     console.log("Invalid client id");
@@ -223,13 +223,13 @@ userRouter.post("/create", async (req, res) => {
       course: course,
       year: year,
       password: password,
+      gctian: gctian,
+      is_google: is_google,
     });
     await user.save();
-    console.log("User saved temp. creating id");
     // SAVE THE USER AND FETCH ALL USER FOR SETTING ID GET THE NUMBER
     var id = 0;
     var obj = await User.find().sort({ id: -1 }).limit(1);
-    // .then(async (obj) => {
     try {
       if (obj == null) id = 1;
       else if (obj.length == 0) id = 1;
@@ -250,22 +250,17 @@ userRouter.post("/create", async (req, res) => {
       await out.send_500_response();
       return;
     }
-    // });
     var userId = "VIJNANA23-" + (100 + id); // USERID IN FORM OF VIJNANA23-101
-    console.log("id is " + id + " userId is " + userId);
     var token = jwt.sign({ userId: userId, email: email }, "mytokenkey", {
       expiresIn: "100h",
     });
-    console.log("TOKEN : " + token);
     // SET THE DATA
     user.id = id;
     user.userId = userId;
     user.token = token;
-    // user.expiry = date;
     await user.save(); // SAVE
     await out.send_response(200, "User created successfully", {
       token: token,
-      // expiry: date,
       userId: userId,
     });
 

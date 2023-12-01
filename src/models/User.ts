@@ -1,22 +1,23 @@
 import mongoose, { InferSchemaType, Model, Schema, Types } from "mongoose";
 import { EventRegI, EventRegType } from "./EventReg";
+import { TeamI } from "./Team";
 
 export interface UserType extends Document {
   id: number;
-  password: string;
   userId: string;
-  email: string;
   name: string;
-  dob: Date;
-  picture: string | null;
+  email: string;
+  phone: string;
   college: string;
   course: string;
   year: number;
-  phone: string;
-  teams: any;
-  participate: [EventRegI];
+  gctian: boolean;
   token: string;
-  expiry: Date;
+  is_google: boolean;
+  password: string | null;
+  picture: string | null;
+  participate: [EventRegI];
+  teams: [TeamI] | null;
 }
 
 const userSchema = new Schema<UserType>(
@@ -28,6 +29,7 @@ const userSchema = new Schema<UserType>(
     },
     password: {
       type: String,
+      required: false,
     },
     userId: {
       type: String,
@@ -66,16 +68,17 @@ const userSchema = new Schema<UserType>(
       type: Schema.Types.ObjectId,
       ref: "Teams",
     },
+    gctian: {
+      type: Boolean,
+      default: false,
+    },
+    is_google: {
+      type: Boolean,
+      default: false,
+    },
     participate: [{ type: Schema.Types.ObjectId, ref: "EventRegs" }],
     token: {
       type: String,
-    },
-    expiry: {
-      type: Date,
-    },
-    dob: {
-      type: Date,
-      required: false,
     },
   },
   { timestamps: true }
