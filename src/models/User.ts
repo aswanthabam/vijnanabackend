@@ -1,22 +1,24 @@
 import mongoose, { InferSchemaType, Model, Schema, Types } from "mongoose";
 import { EventRegI, EventRegType } from "./EventReg";
+import { TeamI } from "./Team";
 
 export interface UserType extends Document {
   id: number;
-  password: string;
-  userId: string;
-  email: string;
-  name: string;
-  dob: Date;
-  picture: string | null;
-  college: string;
-  course: string;
-  year: number;
-  phone: string;
-  teams: any;
-  participate: [EventRegI];
-  token: string;
-  expiry: Date;
+  userId: string; // 1
+  name: string; // 1
+  email: string; // 1
+  phone: string | null; // 2
+  college: string | null; // 2
+  course: string | null; // 2
+  year: number | null; // 2
+  gctian: boolean | null; // 2
+  token: string | null; // 2
+  is_google: boolean; // 1
+  step: number; // 1
+  password: string | null; // 1
+  picture: string | null; // 1
+  participate: [EventRegI] | null; // 2
+  teams: [TeamI] | null; // 2
 }
 
 const userSchema = new Schema<UserType>(
@@ -28,6 +30,7 @@ const userSchema = new Schema<UserType>(
     },
     password: {
       type: String,
+      required: false,
     },
     userId: {
       type: String,
@@ -48,34 +51,39 @@ const userSchema = new Schema<UserType>(
     },
     college: {
       type: String,
-      required: true,
+      required: false,
     },
     course: {
       type: String,
-      required: true,
+      required: false,
     },
     year: {
       type: Number,
-      required: true,
+      required: false,
     },
     phone: {
       type: String,
-      required: true,
+      required: false,
     },
     teams: {
       type: Schema.Types.ObjectId,
       ref: "Teams",
     },
+    gctian: {
+      type: Boolean,
+      default: false,
+    },
+    is_google: {
+      type: Boolean,
+      default: false,
+    },
+    step: {
+      type: Number,
+      default: 1,
+    },
     participate: [{ type: Schema.Types.ObjectId, ref: "EventRegs" }],
     token: {
       type: String,
-    },
-    expiry: {
-      type: Date,
-    },
-    dob: {
-      type: Date,
-      required: false,
     },
   },
   { timestamps: true }

@@ -4,3 +4,10 @@ export type _Response = {
   message: string | undefined;
   data: {} | [] | undefined;
 };
+
+export type _UserStep1 = {
+  name: string;
+  email: string;
+  password: string | null;
+  picture: string | null;
+};
