@@ -109,6 +109,9 @@ userRouter.post("/getMyDetails", async (req: Request, res: Response) => {
       await out.send_500_response();
       return;
     }
+  } else {
+    out.send_message("User not logged in!", 400);
+    return;
   }
   // else out.status = 200;
 });

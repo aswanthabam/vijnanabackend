@@ -54,7 +54,7 @@ export class CustomResponse {
       }
     }
     if (!this.res.headersSent) {
-      this.res.json(this.response).status(status);
+      this.res.status(status).json(this.response);
       return true;
     } else {
       console.log("Headers Already Sent !!!");
