@@ -8,63 +8,42 @@ import { verifyGoogleToken } from "./register";
 
 export const userRouter = Router();
 
-// COMMON FUNCTION FOR USER LOGIN (user instance,res for sending responce,password in case of non google login)
-
-const loginAction = async (p: Array<UserI>, res: Response, password = null) => {
+/*
+  Get the details about the user only, nessesary details are fetched,
+  the token is used to authenticate the user,
+*/
+userRouter.post("/details", async (req, res) => {
   var out = new CustomResponse(res);
-  console.log("In loginAction function..");
-  try {
-    if (p == null) {
-      await out.send_message("Invalid email or password !", 400);
-      return false;
-    }
-    if (p.length < 1) {
-      await out.send_message("Invalid email or password !", 400);
-      return false;
-    } else if (p.length > 1) {
-      await out.send_message(
-        "Multiple users with email. Please report to admin.",
-        500
-      );
-      console.log("Multiple users with email");
-      return true;
-    } else {
-      var p1: UserI = p[0];
-      if (p1.password == null || p1.is_google) {
-        await out.send_message("Please sign in using google method !", 400);
-        return false;
-      }
-      var token = jwt.sign(
-        { userId: p1.userId, email: p1.email },
-        "mytokenkey",
-        {
-          expiresIn: "100h",
-        }
-      );
-      p1.token = token;
-      try {
-        await p1.save();
-      } catch (err) {
-        console.log(err);
-      }
-
-      console.log("TOKEN : " + token);
-
-      await out.send_response(200, "User Authentication Successful !", {
-        userId: p1.userId,
-        token: token,
-        step: p1.step,
-      });
-      console.log("User authentication successful. Tokens send");
-      return true;
-    }
-  } catch (e) {
-    console.log("Error occured");
-    console.log(e);
-    await out.send_500_response();
-    return true;
+  if (!is_authenticated(req)) {
+    await out.send_message("User not logged in!", 400);
+    return;
   }
-};
+  var user = authenticated_user(req);
+  if (user) {
+    if (user.step < 2) {
+      await out.send_response(200, "Status Got - Incomplete Registration!", {
+        userId: user!.userId,
+        step: user!.step,
+      });
+      return;
+    }
+    var details = {
+      userId: user!.userId,
+      name: user!.name,
+      email: user!.email,
+      picture: user!.picture,
+      gctian: user!.gctian,
+      college: user!.college,
+      course: user!.course,
+      year: user!.year,
+      step: user!.step,
+    };
+    // await user.populate("participate");
+    await out.send_response(200, "Status got!", details);
+  } else {
+    return await out.send_message("An unexpected issue occured!", 400);
+  }
+});
 
 /*
   Get all the details about the currently logged in user,
@@ -113,10 +92,27 @@ userRouter.post("/login", async (req, res) => {
     await out.send_message("Aud|Pass not provided", 400);
     return;
   }
-  var p: Array<UserI> = await User.find({ email: email });
-  console.log("Login request");
-  console.log(p);
-  await loginAction(p, res, password);
+  var p: UserI | null = await User.findOne({ email: email }).exec();
+  if (!p) {
+    return await out.send_message(
+      "Email id is not registered with any account!",
+      400
+    );
+  }
+  if (p!.is_google) {
+    return await out.send_message("Please login with google", 400);
+  }
+  if (p!.password != password) {
+    return await out.send_message("Wrong Password!", 400);
+  }
+  var token = jwt.sign({ userId: p!.userId, email: p!.email }, "mytokenkey", {
+    expiresIn: "100h",
+  });
+  await out.send_response(200, "Logged in Succesfully!", {
+    userId: p!.userId,
+    token: token,
+    step: p!.step,
+  });
 });
 
 /*
