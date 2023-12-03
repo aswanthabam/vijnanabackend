@@ -10,73 +10,98 @@ import { authenticated_user, is_authenticated } from "../../request";
 //
 export const eventRouter = Router();
 
-// ROUTE : /API/EVENT/REGISTER (POST)
+/*
+  Get the events the user is regsitered to. Get the user from token
+  will give a list of registered events
+*/
+
+eventRouter.post('/myEvents',async (req,res)=>{
+  var out = new CustomResponse(res)
+  if(!is_authenticated(req)){
+    await out.send_message("Please login to continue !",400);
+    return
+  }
+  var user = authenticated_user(req)
+  if(!user) {
+    await out.send_message("Please login to continue !",400);
+    return
+  }
+  var regs = await EventReg.find({userId: user.userId}).populate('event')
+  if(!regs || regs.length < 1){
+    await out.send_response(200,"Not Registered in any events!",{events:[]})
+    return
+  }else {
+    var events:{}[] = []
+    for(var i = 0; i< regs.length;i++){
+      var reg = regs[i]
+      events.push({
+          id: reg.event.id,
+          name: reg.event.name,
+          date: reg.event.date
+        })
+    }
+    await out.send_response(200,"Successfuly fetched!",{events:events});
+    return
+  }
+});
+
+/*
+  Register to an event, use the token to verify user
+*/
 
 eventRouter.post("/register",async (req: Request,res: Response) => {
   // REGISTER TO EVENT
   var out = new CustomResponse(res);
   if (!is_authenticated(req)){
-    await out.send_message("User not logged in !",400);
+    await out.send_message("Please login to continue !",400);
     return 
   }
-  var {id = null} = req.body;
-  if(id == null){
+  var {eventId = null} = req.body;
+  if(eventId == null){
     await out.send_message("ID not provided",400);
     return;
   }
 
   var user1 = authenticated_user(req);
-  console.log("Registeration to event "+id);
+  console.log("Registeration to event "+eventId);
   console.log("Request is ok");
   try {
     if(user1 == null) {
-      await out.send_message("User Error",400);
+      await out.send_message("Please Login to Continue!",400);
       return
     }else {
-      // VALID USER
-      var event1 = await Event.findOne({id:id}).exec();
+      var event1 = await Event.findOne({id:eventId}).exec();
       if(event1 == null) {
-        await out.send_message("Event not found error !",400);
+        await out.send_message("Event not found !",400);
+        return;
+      }
+      var eventReg = await EventReg.find({userId:user1.userId,event:event1});
+      var has = true;
+      if(eventReg == null) has = false;
+      else if(eventReg.length <= 0) has = false;
+      if(has) {
+        console.log("Already registered, instance:-");
+        await out.send_message("Already Registered!");
         return;
       }else {
-        // VALID EVENT
-        console.log("User instance:-");
-        console.log(user1);
-        console.log("Event instance:-");
-        console.log(event1);
-        // GETS THE EVENT REGISTRATION INSTANCE OF THE PERTICULAR EVENT AND USER
-        var eventReg = await EventReg.find({userId:user1.userId,eventId:event1.id});
-        var has = true;
-        if(eventReg == null) has = false;
-        else if(eventReg.length <= 0) has = false;
-        if(has) {
-          // EVENT IS ALREADY REGISTERED
-          console.log("Already registered, instance:-");
-          console.log(eventReg)
-          await out.send_message("Already Registered!");
-          return;
-        }else {
-          // CREAETE A NEW EVENT REGISTRATION INSTANCE
-          var eventReg2 = new EventReg({
-            userId:user1.userId,
-            eventId:event1.id,
-            date:new Date()
-          });
-          await eventReg2.save();
-          // UPDATE THE EVENT AND USER WITH THE PERTICULAR EVENT AND USER 
-          event1.participants.push(eventReg2);
-          await event1.save();
-          user1.participate.push(eventReg2);
-          await user1.save();
-          console.log("Registered");
-          console.log(eventReg);
-          await out.send_response(200,"Successfuly Registered!",{
-            userId:user1.userId,
-            eventId:event1.id,
-            participate:user1.participate
-          })
-          return
-        }
+        var eventReg2 = new EventReg({
+          userId:user1.userId,
+          event:event1,
+          date:new Date()
+        });
+        await eventReg2.save();
+        // UPDATE THE EVENT AND USER WITH THE PERTICULAR EVENT AND USER 
+        event1.participants.push(eventReg2);
+        await event1.save();
+        user1.participate.push(eventReg2);
+        await user1.save();
+        console.log(eventReg);
+        await out.send_response(200,"Successfuly Registered!",{
+          userId:user1.userId,
+          eventId:event1.id,
+          participate:user1.participate
+        })
+        return
       }
     }
   }catch(e) {
