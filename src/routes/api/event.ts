@@ -191,13 +191,7 @@ eventRouter.get("/get", async (req, res) => {
       await out.send_message("Event not found", 400)
       return;
     }
-    // var participants = (await User.find({ userId: { $in: p[0].participants.map((userId) => userId) } })).map((user: UserI, i) => {
-    //   return {
-    //     ...user.toJSON(),
-    //     date: p[0].participants[i].date
-    //   };
-    // });
-    await out.send_response(200, "Success", {
+    await out.send_response(200, "Success", [{
       id: p[0].id,
       name: p[0].name,
       description: p[0].description,
@@ -215,7 +209,7 @@ eventRouter.get("/get", async (req, res) => {
       participants: p[0].participants.map((par) => { return { userId: par.userId, date: par.date } }),
       closed: p[0].closed,
       reg_link: p[0].reg_link
-    })
+    }])
     return;
   } catch (e) {
     console.log("Error occured");
