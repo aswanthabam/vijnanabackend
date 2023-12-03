@@ -7,7 +7,6 @@ import { EventReg } from "../../models/EventReg";
 import { CustomResponse } from "../../response";
 import { authenticated_user, is_authenticated } from "../../request";
 
-//
 export const eventRouter = Router();
 
 /*
@@ -63,8 +62,6 @@ eventRouter.post("/register",async (req: Request,res: Response) => {
   }
 
   var user1 = authenticated_user(req);
-  console.log("Registeration to event "+eventId);
-  console.log("Request is ok");
   try {
     if(user1 == null) {
       await out.send_message("Please Login to Continue!",400);
@@ -90,12 +87,10 @@ eventRouter.post("/register",async (req: Request,res: Response) => {
           date:new Date()
         });
         await eventReg2.save();
-        // UPDATE THE EVENT AND USER WITH THE PERTICULAR EVENT AND USER 
         event1.participants.push(eventReg2);
         await event1.save();
         user1.participate.push(eventReg2);
         await user1.save();
-        console.log(eventReg);
         await out.send_response(200,"Successfuly Registered!",{
           userId:user1.userId,
           eventId:event1.id,
@@ -105,10 +100,9 @@ eventRouter.post("/register",async (req: Request,res: Response) => {
       }
     }
   }catch(e) {
-    // UNEXPECTED ERROR IS OCCURED
     console.log("Error Occured");
     console.log(e);
-    await out.send_failiure_response()
+    await out.send_500_response()
     return;
   }
 });
@@ -116,7 +110,6 @@ eventRouter.post("/register",async (req: Request,res: Response) => {
 // ROUTE : /API/EVENT/DELETE (GET)
 
 eventRouter.post("/delete",async (req: Request,res: Response) =>{
-  // EVENT DELETION REQUEST FROM THE ADMIN
   var {id = null,token=null} = req.body;
   var out = new CustomResponse(res)
   var admin = false;
@@ -126,8 +119,6 @@ eventRouter.post("/delete",async (req: Request,res: Response) =>{
   }
   console.log("Deletion "+id+" token "+token);
   if(token != null) {
-    // ADMIN VALIDATION
-    console.log("Checking admin");
     var p = await Admin.find({token:token});
     if(p == null){
       await out.send_message("Invalid Token",400);
@@ -153,16 +144,13 @@ eventRouter.post("/delete",async (req: Request,res: Response) =>{
     return;
   }
   try {
-    // DELETE THE EVENT
     var err = await Event.deleteOne({id:id});
     try {
       if(err.deletedCount< 1) {
-        console.log("Unable to Delete")
         await out.send_message("Unable to delete",400)
         return
       }else {
         var err2 = await EventReg.deleteMany({eventId:id});
-        console.log("Deleted successfully ")
         await out.send_response(200,"Deleted Successfuly",p1)
         return
       }
@@ -170,17 +158,16 @@ eventRouter.post("/delete",async (req: Request,res: Response) =>{
       await out.send_500_response()
       return
     }
-    return;
   }catch(e){
-    // AN UMNKNOWN ERROR OCCURED
     console.log("Error occured");
-    console.log(e)
     await out.send_500_response()
     return;
   }
 });
 
-// ROUTE : /API/EVENT/GET (GET)
+/*
+  Get an event by its id, return an event
+*/
 
 eventRouter.get("/get",async (req,res)=>{
   var {id = null} = req.query;
@@ -189,9 +176,7 @@ eventRouter.get("/get",async (req,res)=>{
     await out.send_message("ID not given",400)
     return;
   }
-  console.log("Event data get : "+id);
   try{
-    // FIND ALL EVENTS AND LINK THE PARTICULAR EVENTS WITH EVENTREG
     var p = await Event.find({id:id}).populate("participants");
     if(p == null) {
       await out.send_message("Event not found",400)
@@ -199,16 +184,12 @@ eventRouter.get("/get",async (req,res)=>{
     }
     else if(p.length != 1) {
       await out.send_message("Event not found",400)
-      res.json(out)
       return;
     }
-    console.log("Populating with user Instance");
     var participants = (await User.find({userId:{$in:p[0].participants.map((userId)=>userId)}})).map((user: UserI,i) => {
       return {...user.toJSON(),
       date:p[0].participants[i].date};
     });
-    console.log("participants fetched");
-    console.log(participants);
     await out.send_response(200,"Success",[{
       ...p[0].toJSON(),
       participants:participants
@@ -222,16 +203,16 @@ eventRouter.get("/get",async (req,res)=>{
   }
 })
 
-// ROUTE : /API/EVENT/GETALL (GET)
+/*
+  Get all the events
+*/
 
 eventRouter.get("/getAll",async (req,res) =>{
-  
   var {token=null,count=-1} = req.query;
   var out = new CustomResponse(res);
   try{
     var admin = false;
     if(token != null) {
-      console.log("Admin Check ");
       var p = await Admin.find({token:token});
       if(p == null){
         await out.send_message("Invalid token",400)
@@ -250,21 +231,18 @@ eventRouter.get("/getAll",async (req,res) =>{
       if(!admin) {
         console.log("Not an Admin ❌");
         return;
-      }else console.log("Admin ✔️")
+      }
+      console.log("Admin ✔️")
     }
-    // GET THE CORRESPONDING EVENT LIST
     if(count == -1) var p2 = await Event.find().populate("participants").sort({date:1});//.then(p =>{
     else var p2 = await Event.find().populate("participants").sort({date:1}).limit(count as number);//.then(p =>{
     if(p2 == null) {
       await out.send_message("no events",400);
       return;
     }
-    console.log("Events:-");
     var data = [];
     for(var i = 0;i < p2.length;i++){
-      // PUSH EACH EVENT TO THE DATA AND RETURN IT AS RESPONCE
       var cur = p2[i];
-      // PARTICIPANT DATA GIVING ACCOURDING TO ADMIN AND NORMAL USER
       var participants = [];
       if(!admin) {
         for(var j = 0;j < cur.participants.length;j++){
@@ -302,7 +280,9 @@ eventRouter.get("/getAll",async (req,res) =>{
   }
 })
 
-// ROUTE : /API/EVENT/EDIT (POST)
+/*
+  Edit an event, admin role required, 
+*/
 
 eventRouter.post("/edit",async (req,res) => {
   var {id=null,name=null,description=null,date=null,type=null,image=null,maxPart=1,minPart=1,poster=null,docs=null,is_reg=true,closed=false,venue=null,details = null, reg_link=null} = req.body;
@@ -312,9 +292,7 @@ eventRouter.post("/edit",async (req,res) => {
     return
   }
   try{
-    //FIND THE EVENT
     var ev = await Event.find({id:id});
-    console.log(ev);
     if(ev == null) {
       await out.send_message("NO event witht the ID",400)
       return
@@ -323,7 +301,6 @@ eventRouter.post("/edit",async (req,res) => {
       return
     }else {
       var ev1 = ev[0]; 
-      // UPDATE THE CORRESPONDING VALUES
       if(name != null) ev1.name = name;
       if(description != null) ev1.description = description;
       if(date != null) ev1.date = date;
@@ -338,7 +315,7 @@ eventRouter.post("/edit",async (req,res) => {
       if(reg_link != null) ev1.reg_link = reg_link;
       ev1.is_reg = is_reg;
       ev1.closed = closed;
-      await ev1.save(); //save
+      await ev1.save(); 
       await out.send_response(200,"Event saved ("+name+")",ev)
       return
     }
@@ -350,15 +327,15 @@ eventRouter.post("/edit",async (req,res) => {
   }
 });
 
-// ROUTE : /API/EVENT/CREATE
+/*
+  Create an event, admin role required.
+*/
 
 eventRouter.post("/create",async (req: Request,res: Response) => {
-  console.log("Create event request")
   var {name=null,   
     description=null,date=null,type=null,image=null,maxPart=1,minPart=1,poster=null,docs=null,is_reg=true,closed=false,
   venue=null,details = null, reg_link=null} = req.body;
   var out = new CustomResponse(res)
-  // validate data
   if (name == null || description == null || date == null || type == null || image == null || venue == null || details == null){
     if(name == null) out.set_data_key('name',"Name not provided");
     if(description == null) out.set_data_key('description',"description not provided");
@@ -373,7 +350,6 @@ eventRouter.post("/create",async (req: Request,res: Response) => {
   }
 
   try{
-    // CREATE AN ID FPR THE EVENT
     var id = (type+"-"+name.replace(" ","").toLowerCase()+"-"+new Date(date).getDate()).replace("/","").replace("&","").replace("?","").replace("+","");//btoa("Event"+type+name+new Date()).replace("=","");
     var ev = new Event({
       id:id,
@@ -393,7 +369,6 @@ eventRouter.post("/create",async (req: Request,res: Response) => {
       details:details,
       reg_link:reg_link
     });
-    // save and validate a event
     try{
       await ev.save();
     }catch(err){
@@ -401,7 +376,6 @@ eventRouter.post("/create",async (req: Request,res: Response) => {
       await out.send_message("Data validation failed! "+JSON.stringify(err))
     }
     await out.send_response(200,"Event Created ",ev)
-    console.log("Event created");
     return;
   }catch(e){
     console.log(e)
