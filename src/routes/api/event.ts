@@ -54,7 +54,6 @@ eventRouter.post('/myEvents', async (req, res) => {
 */
 
 eventRouter.post("/register", async (req: Request, res: Response) => {
-  // REGISTER TO EVENT
   var out = new CustomResponse(res);
   if (!is_authenticated(req)) {
     await out.send_message("Please login to continue !", 400);
@@ -96,10 +95,13 @@ eventRouter.post("/register", async (req: Request, res: Response) => {
         await event1.save();
         user1.participate.push(eventReg2);
         await user1.save();
+        await user1.populate('participate')
         await out.send_response(200, "Successfuly Registered!", {
           userId: user1.userId,
           eventId: event1.id,
-          participate: user1.participate
+          participate: 
+            user1.participate.map((par) => {
+              return { eventId: par.event, userId: par.userId } }),
         })
         return
       }
@@ -125,20 +127,17 @@ eventRouter.post("/delete", async (req: Request, res: Response) => {
   console.log("Deletion " + id + " token " + token);
   if (token != null) {
     var p = await Admin.find({ token: token });
-    if (p == null) {
+    if (p == null || p.length != 1) {
       await out.send_message("Invalid Token", 400);
       return
-    } else if (p.length != 1) {
-      await out.send_message("Invalid Token", 400);
-      return
-    } else {
-      var p1 = p[0];
-      var date = new Date();
-      if (date.getFullYear() >= p1.expiry!.getFullYear() && date.getMonth() >= p1.expiry!.getDate() && date.getDate() >= p1.expiry!.getDate() && date.getHours() >= p1.expiry!.getHours() && date.getMinutes() >= p1.expiry!.getMinutes()) {
-        await out.send_message("Expired Token", 400);
-        return
-      } else admin = true;
     }
+    var p1 = p[0];
+    var date = new Date();
+    if (date.getFullYear() >= p1.expiry!.getFullYear() && date.getMonth() >= p1.expiry!.getDate() && date.getDate() >= p1.expiry!.getDate() && date.getHours() >= p1.expiry!.getHours() && date.getMinutes() >= p1.expiry!.getMinutes()) {
+      await out.send_message("Expired Token", 400);
+      return
+    } else admin = true;
+
     if (!admin) {
       console.log("User is admin ✔️");
       return;
@@ -149,14 +148,19 @@ eventRouter.post("/delete", async (req: Request, res: Response) => {
     return;
   }
   try {
+    var ev = await Event.findOne({id:id}).exec()
+    if(!ev){
+      await out.send_message("The event doesnt exists!");
+      return
+    }
     var err = await Event.deleteOne({ id: id });
     try {
       if (err.deletedCount < 1) {
         await out.send_message("Unable to delete", 400)
         return
       } else {
-        var err2 = await EventReg.deleteMany({ eventId: id });
-        await out.send_response(200, "Deleted Successfuly", p1)
+        var err2 = await EventReg.deleteMany({ event:ev });
+        await out.send_response(200, "Deleted Successfuly", { eventId: id })
         return
       }
     } catch (err) {
@@ -183,24 +187,35 @@ eventRouter.get("/get", async (req, res) => {
   }
   try {
     var p = await Event.find({ id: id }).populate("participants");
-    if (p == null) {
+    if (p == null || p.length != 1) {
       await out.send_message("Event not found", 400)
       return;
     }
-    else if (p.length != 1) {
-      await out.send_message("Event not found", 400)
-      return;
-    }
-    var participants = (await User.find({ userId: { $in: p[0].participants.map((userId) => userId) } })).map((user: UserI, i) => {
-      return {
-        ...user.toJSON(),
-        date: p[0].participants[i].date
-      };
-    });
-    await out.send_response(200, "Success", [{
-      ...p[0].toJSON(),
-      participants: participants
-    }])
+    // var participants = (await User.find({ userId: { $in: p[0].participants.map((userId) => userId) } })).map((user: UserI, i) => {
+    //   return {
+    //     ...user.toJSON(),
+    //     date: p[0].participants[i].date
+    //   };
+    // });
+    await out.send_response(200, "Success", {
+      id: p[0].id,
+      name: p[0].name,
+      description: p[0].description,
+      details: p[0].details,
+      venue: p[0].venue,
+      date: p[0].date,
+      type: p[0].type,
+      image: p[0].image,
+      docs: p[0].docs,
+      minpart: p[0].minpart,
+      maxpart: p[0].maxpart,
+      poster: p[0].poster,
+      is_team: p[0].is_team,
+      is_reg: p[0].is_reg,
+      participants: p[0].participants.map((par) => { return { userId: par.userId, date: par.date } }),
+      closed: p[0].closed,
+      reg_link: p[0].reg_link
+    })
     return;
   } catch (e) {
     console.log("Error occured");
@@ -323,7 +338,10 @@ eventRouter.post("/edit", async (req, res) => {
       ev1.is_reg = is_reg;
       ev1.closed = closed;
       await ev1.save();
-      await out.send_response(200, "Event saved (" + name + ")", ev)
+      await out.send_response(200, "Event saved (" + name + ")", {
+        id: ev1.id,
+        name: ev1.name,
+      })
       return
     }
   } catch (e) {
@@ -382,7 +400,10 @@ eventRouter.post("/create", async (req: Request, res: Response) => {
       console.log(err)
       await out.send_message("Data validation failed! " + JSON.stringify(err))
     }
-    await out.send_response(200, "Event Created ", ev)
+    await out.send_response(200, "Event Created ", {
+      id: ev.id,
+      name: ev.name
+    })
     return;
   } catch (e) {
     console.log(e)
