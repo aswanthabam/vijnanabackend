@@ -1,13 +1,15 @@
 import mongoose, { Schema } from "mongoose";
+import { EventI } from "./Event";
 export interface EventRegType extends Document {
-  eventId: string;
+  event: EventI;
   userId: string;
   date: Date;
 }
 
 const eventRegSchema = new Schema<EventRegType>({
-  eventId: {
-    type: String,
+  event: {
+    type: Schema.Types.ObjectId,
+    ref: "Events",
     required: true,
   },
   userId: {

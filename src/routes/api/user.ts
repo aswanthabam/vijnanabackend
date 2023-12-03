@@ -213,7 +213,7 @@ userRouter.post("/createAccount/google", async (req, res) => {
       name: usr.name,
       email: usr.email,
       password: usr.password,
-      picture: usr.password,
+      picture: usr.picture,
       step: 1,
       is_google: true,
     });
