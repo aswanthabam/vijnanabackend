@@ -423,7 +423,11 @@ eventRouter.post("/create", async (req: Request, res: Response) => {
   }
 
   try {
-    var id = (type + "-" + name.replace(" ", "").toLowerCase() + "-" + new Date(date).getDate()).replace("/", "").replace("&", "").replace("?", "").replace("+", "");//btoa("Event"+type+name+new Date()).replace("=","");
+    var id = type.replaceAll(' ','') + '-' + name.replaceAll(" ", "")
+    console.log("Creating event " + id)
+    id = id.toLowerCase();
+    console.log("Creating event " + id)
+    // var id = (type + "-" + name.replace(" ", "").toLowerCase() + "-" + new Date(date).getDate()).replace("/", "").replace("&", "").replace("?", "").replace("+", "");//btoa("Event"+type+name+new Date()).replace("=","");
     var ev = new Event({
       id: id,
       name: name,
