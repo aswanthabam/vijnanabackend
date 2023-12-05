@@ -70,10 +70,26 @@ eventRouter.post("/register", async (req: Request, res: Response) => {
     if (user1 == null) {
       await out.send_message("Please Login to Continue!", 400);
       return
-    } else {
+    } else if(user1.step != 2) {
+      await out.send_message("Please complete registration to continue!", 400);
+      return
+    }
+    else {
       var event1 = await Event.findOne({ id: eventId }).exec();
       if (event1 == null) {
         await out.send_message("Event not found !", 400);
+        return;
+      }
+      if (event1.closed) {
+        await out.send_message("Event is closed!", 400);
+        return;
+      }
+      if (event1.gctian_only && !user1.gctian) {
+        await out.send_message("Only KBMGCT students can register for this event!", 400);
+        return;
+      }
+      if(event1.is_reg == false){
+        await out.send_message("This event is open to all!", 400);
         return;
       }
       var eventReg = await EventReg.find({ userId: user1.userId, event: event1 });
@@ -99,9 +115,10 @@ eventRouter.post("/register", async (req: Request, res: Response) => {
         await out.send_response(200, "Successfuly Registered!", {
           userId: user1.userId,
           eventId: event1.id,
-          participate: 
+          participate:
             user1.participate.map((par) => {
-              return { eventId: par.event, userId: par.userId } }),
+              return { eventId: par.event, userId: par.userId }
+            }),
         })
         return
       }
@@ -148,8 +165,8 @@ eventRouter.post("/delete", async (req: Request, res: Response) => {
     return;
   }
   try {
-    var ev = await Event.findOne({id:id}).exec()
-    if(!ev){
+    var ev = await Event.findOne({ id: id }).exec()
+    if (!ev) {
       await out.send_message("The event doesnt exists!");
       return
     }
@@ -159,7 +176,7 @@ eventRouter.post("/delete", async (req: Request, res: Response) => {
         await out.send_message("Unable to delete", 400)
         return
       } else {
-        var err2 = await EventReg.deleteMany({ event:ev });
+        var err2 = await EventReg.deleteMany({ event: ev });
         await out.send_response(200, "Deleted Successfuly", { eventId: id })
         return
       }
@@ -206,6 +223,7 @@ eventRouter.get("/get", async (req, res) => {
       poster: p[0].poster,
       is_team: p[0].is_team,
       is_reg: p[0].is_reg,
+      gcitan_only: p[0].gctian_only,
       participants: p[0].participants.map((par) => { return { userId: par.userId, date: par.date } }),
       closed: p[0].closed,
       reg_link: p[0].reg_link
@@ -281,6 +299,7 @@ eventRouter.get("/getAll", async (req, res) => {
         poster: cur.poster,
         is_team: cur.is_team,
         is_reg: cur.is_reg,
+        gctian_only: cur.gctian_only,
         participants: participants,
         closed: cur.closed,
         teams: admin ? cur.teams : null,
@@ -301,7 +320,25 @@ eventRouter.get("/getAll", async (req, res) => {
 */
 
 eventRouter.post("/edit", async (req, res) => {
-  var { id = null, name = null, description = null, date = null, type = null, image = null, maxPart = 1, minPart = 1, poster = null, docs = null, is_reg = true, closed = false, venue = null, details = null, reg_link = null } = req.body;
+  var {
+    id = null,
+    name = null,
+    description = null,
+    date = null,
+    type = null,
+    image = null,
+    maxPart = 1,
+    minPart = 1,
+    poster = null,
+    docs = null,
+    is_reg = true,
+    closed = false,
+    venue = null,
+    details = null,
+    reg_link = null,
+    gctian_only = null
+  } = req.body;
+
   var out = new CustomResponse(res);
   if (id == null) {
     await out.send_message("No id given", 400)
@@ -329,8 +366,10 @@ eventRouter.post("/edit", async (req, res) => {
       if (venue != null) ev1.venue = venue;
       if (details != null) ev1.details = details;
       if (reg_link != null) ev1.reg_link = reg_link;
+      if (gctian_only != null) ev1.gctian_only = gctian_only;
       ev1.is_reg = is_reg;
       ev1.closed = closed;
+
       await ev1.save();
       await out.send_response(200, "Event saved (" + name + ")", {
         id: ev1.id,
@@ -351,9 +390,24 @@ eventRouter.post("/edit", async (req, res) => {
 */
 
 eventRouter.post("/create", async (req: Request, res: Response) => {
-  var { name = null,
-    description = null, date = null, type = null, image = null, maxPart = 1, minPart = 1, poster = null, docs = null, is_reg = true, closed = false,
-    venue = null, details = null, reg_link = null } = req.body;
+  var {
+    name = null,
+    description = null,
+    date = null,
+    type = null,
+    image = null,
+    maxPart = 1,
+    minPart = 1,
+    poster = null,
+    docs = null,
+    is_reg = true,
+    closed = false,
+    venue = null,
+    details = null,
+    reg_link = null,
+    gctian_only = false
+  } = req.body;
+
   var out = new CustomResponse(res)
   if (name == null || description == null || date == null || type == null || image == null || venue == null || details == null) {
     if (name == null) out.set_data_key('name', "Name not provided");
@@ -386,7 +440,8 @@ eventRouter.post("/create", async (req: Request, res: Response) => {
       closed: closed,
       venue: venue,
       details: details,
-      reg_link: reg_link
+      reg_link: reg_link,
+      gctian_only: gctian_only
     });
     try {
       await ev.save();
