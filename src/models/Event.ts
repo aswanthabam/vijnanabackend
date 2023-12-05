@@ -1,5 +1,4 @@
 import mongoose, { Schema, Types, Document } from "mongoose";
-import { UserI } from "./User";
 import { EventRegI } from "./EventReg";
 export interface EventType extends Document {
   id: string;
@@ -18,6 +17,7 @@ export interface EventType extends Document {
   closed: boolean;
   is_reg: boolean;
   is_team: boolean;
+  gctian_only: boolean;
   participants: EventRegI[];
   teams: Types.ObjectId[] | null;
 }
@@ -55,6 +55,10 @@ const eventSchema = new Schema<EventType>(
     is_reg: {
       type: Boolean,
       default: true,
+    },
+    gctian_only: {
+      type: Boolean,
+      default: false,
     },
     image: {
       type: String,
