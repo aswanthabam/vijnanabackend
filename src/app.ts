@@ -12,14 +12,13 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
-import { RequestLog } from "./models/Log";
-import CustomRequest from "./request";
+import { ErrorLog, RequestLog } from "./models/Log";
+import CustomRequest, { authenticated_user } from "./request";
 import Jwt from "jsonwebtoken";
 import { User } from "./models/User";
 import { CustomResponse } from "./response";
+
 dotenv.config();
-// var logger = require("morgan");
-// var cors = require("cors");
 
 var app = express();
 app.use(cors());
@@ -30,7 +29,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(async function (req: Request, res: Response, next: NextFunction) {
   try {
-    console.log("Token validation middleware");
+    console.log(" -- Token validation middleware");
     var token =
       req.body.token ||
       (req.headers["authorization"] &&
@@ -42,9 +41,9 @@ app.use(async function (req: Request, res: Response, next: NextFunction) {
       if (user) {
         (req as any as CustomRequest).is_authenticated = true;
         (req as any as CustomRequest).user = user;
+        (req as any as CustomRequest).is_admin = user.is_admin;
       }
     }
-    // console.log(token);
   } catch (err) {
     console.log("Error checking token");
     console.log(err);
@@ -67,6 +66,7 @@ app.use(async function (req: Request, res: Response, next: NextFunction) {
       var log = new RequestLog({
         url: req.url,
         type: req.method,
+        user: authenticated_user(req),
         data: JSON.stringify(req.body),
       });
       await log.save();
@@ -84,6 +84,33 @@ app.use("/api/v2/users", userRouter);
 app.use("/api/v2/admin", adminApiRouter);
 app.use("/api/v2/events", eventRouter);
 app.use("/admin", adminRouter);
+
+app.use(async function (
+  err: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  console.log("Error handler");
+  console.log(err);
+  var log = res.getHeader("logID") || null;
+  try {
+    if (env.LOG && env.LOG == "true") {
+      var errLog = new ErrorLog({
+        route: req.url,
+        error: err.toString(),
+        log: log as string | null | undefined,
+        stack: err.stack,
+      });
+      await errLog.save();
+    }
+  } catch (err) {
+    console.log("Error logging error");
+    console.log(err);
+  }
+  var out = new CustomResponse(res);
+  await out.send_500_response();
+});
 
 const uri: string = env.DB_URL!;
 mongoose

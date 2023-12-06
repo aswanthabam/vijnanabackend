@@ -1,122 +1,81 @@
 const env = process.env;
-import { Router, Request, Response } from "express";
-import { Admin } from "../../models/Admin";
+import { Router, Request, Response, NextFunction } from "express";
 import { CustomResponse } from "../../response";
+import { is_admin } from "../../request";
+import { About } from "../../models/About";
 
 export const adminApiRouter = Router();
 
-adminApiRouter.post("/is_admin", async (req: Request, res: Response) => {
-  var { token = null } = req.body;
-  var out = new CustomResponse(res);
-  if (token == null) {
-    await out.send_message("Token not found !", 400);
-    return;
-  }
+/* 
+  Check if the user is an admin
+*/
 
-  console.log("Admin Authentication process....");
-  var date = new Date();
-  console.log("Today time: " + date.toISOString());
-  try {
-    var p = await Admin.find({ token: token });
-    // .then((p) => {
-    if (p == null) {
-      await out.send_message("Invalid Token", 400);
-      console.log("Invalid token 1 NULL");
-      return;
-    } else if (p.length != 1) {
-      await out.send_message("Invalid Token", 400);
-      console.log("Invalid token 2");
-      return;
-    } else {
-      var p1 = p[0];
-      if (
-        date.getFullYear() >= p1.expiry!.getFullYear() &&
-        date.getMonth() >= p1.expiry!.getDate() &&
-        date.getDate() >= p1.expiry!.getDate() &&
-        date.getHours() >= p1.expiry!.getHours() &&
-        date.getMinutes() >= p1.expiry!.getMinutes()
-      ) {
-        console.log("Expired token");
-        console.log(
-          date.getFullYear() +
-            "/" +
-            date.getMonth() +
-            " | Token expiry: " +
-            p1.expiry!
-        );
-        await out.send_message("Expired Token", 400);
-        return;
-      } else {
-        console.log("Auth success");
-        await out.send_response(200, "Token Valid !", {
-          expiry: p1.expiry,
-          valid: true,
-        });
+adminApiRouter.post(
+  "/is_admin",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      var out = new CustomResponse(res);
+      if (!is_admin(req)) {
+        await out.send_response(200, "Not an admin", { is_admin: false });
         return;
       }
+      await out.send_response(200, "Admin", { is_admin: true });
+      return;
+    } catch (err) {
+      next(err);
     }
-    // });
-  } catch (e) {
-    await out.send_500_response();
-    return;
   }
-});
+);
 
-adminApiRouter.post("/login", async (req: Request, res: Response) => {
-  var { user = null, pass = null } = req.body;
-  var out = new CustomResponse(res);
-  if (user == null || pass == null) {
-    if (user == null) out.set_data_key("user", "User not provided");
-    if (pass == null) out.set_data_key("pass", "Password not provided");
-    out.set_message("Invalid Request!");
-    out.send_failiure_response();
-    return;
+/*
+  Set the about data of the event, this is the main infoe about the event
+*/
+
+adminApiRouter.post(
+  "/set_about",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      var out = new CustomResponse(res);
+      if (!is_admin(req)) {
+        await out.send_message("Not an admin", 400);
+        return;
+      }
+      var {
+        name = null,
+        start = null,
+        end = null,
+        about = null,
+        contact = null,
+        email = null,
+      } = req.body;
+      if (!name || !start || !end || !about || !contact || !email) {
+        await out.send_message("Invalid data", 400);
+        return;
+      }
+      var abouts = await About.find().exec();
+      if (abouts && abouts.length < 1) {
+        var ab = new About({
+          name: name,
+          start: start,
+          end: end,
+          about: about,
+          contact: contact,
+          email: email,
+        });
+      } else {
+        var ab = abouts[0];
+        ab.name = name;
+        ab.start = start;
+        ab.end = end;
+        ab.about = about;
+        ab.contact = contact;
+        ab.email = email;
+      }
+      await ab.save();
+      await out.send_response(200, "Success", { about: ab });
+      return;
+    } catch (err) {
+      next(err);
+    }
   }
-  console.log("ADMIN TOKEN GENERATION");
-  console.log("USER :" + user + "|" + env.USER);
-  console.log("PASS :" + pass + "|" + env.PASS);
-  if (user != env.USER) {
-    await out.send_message("User not matched", 400);
-    return;
-  } else if (pass != env.PASS) {
-    await out.send_message("Password Mismatch!", 400);
-    return;
-  }
-
-  var date = new Date();
-  var token = null;
-  token = btoa(
-    "AdminisAswanth|D" +
-      date.getDate() +
-      "M" +
-      date.getMonth() +
-      "Y" +
-      date.getFullYear() +
-      "H" +
-      date.getHours() +
-      "M" +
-      date.getMinutes() +
-      "S" +
-      date.getSeconds() +
-      "CL"
-  ).replace("=", "");
-
-  date.setDate(date.getDate() + 14);
-  var p = new Admin({
-    token: token,
-    expiry: date,
-  });
-
-  try {
-    await p.save();
-    await out.send_response(200, "Logged in!", {
-      token: token,
-      expiry: date,
-    });
-    return;
-  } catch (e) {
-    console.log(e);
-    await out.send_500_response();
-    return;
-  }
-});
+);
