@@ -16,6 +16,7 @@ import { RequestLog } from "./models/Log";
 import CustomRequest from "./request";
 import Jwt from "jsonwebtoken";
 import { User } from "./models/User";
+import { CustomResponse } from "./response";
 
 dotenv.config();
 
@@ -82,6 +83,18 @@ app.use("/api/v2/users", userRouter);
 app.use("/api/v2/admin", adminApiRouter);
 app.use("/api/v2/events", eventRouter);
 app.use("/admin", adminRouter);
+
+app.use(async function (
+  err: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  console.log("Error handler");
+  console.log(err);
+  var out = new CustomResponse(res);
+  await out.send_500_response();
+});
 
 const uri: string = env.DB_URL!;
 mongoose
