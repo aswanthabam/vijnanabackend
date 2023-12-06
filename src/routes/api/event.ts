@@ -1,5 +1,5 @@
 const env = process.env
-import { Request, Response, Router } from "express";
+import { NextFunction, Request, Response, Router } from "express";
 import { Event } from "../../models/Event";
 import { EventReg } from "../../models/EventReg";
 import { CustomResponse } from "../../response";
@@ -12,7 +12,7 @@ export const eventRouter = Router();
   will give a list of registered events
 */
 
-eventRouter.post('/myEvents', async (req, res) => {
+eventRouter.post('/myEvents', async (req, res, next) => {
   var out = new CustomResponse(res)
   try {
     if (!is_authenticated(req)) {
@@ -42,8 +42,7 @@ eventRouter.post('/myEvents', async (req, res) => {
       return
     }
   } catch (err) {
-    console.log(err)
-    await out.send_500_response()
+    next(err);
   }
 });
 
@@ -51,20 +50,20 @@ eventRouter.post('/myEvents', async (req, res) => {
   Register to an event, use the token to verify user
 */
 
-eventRouter.post("/register", async (req: Request, res: Response) => {
+eventRouter.post("/register", async (req: Request, res: Response, next: NextFunction) => {
   var out = new CustomResponse(res);
-  if (!is_authenticated(req)) {
-    await out.send_message("Please login to continue !", 400);
-    return
-  }
-  var { eventId = null } = req.body;
-  if (eventId == null) {
-    await out.send_message("ID not provided", 400);
-    return;
-  }
-
-  var user1 = authenticated_user(req);
   try {
+    if (!is_authenticated(req)) {
+      await out.send_message("Please login to continue !", 400);
+      return
+    }
+    var { eventId = null } = req.body;
+    if (eventId == null) {
+      await out.send_message("ID not provided", 400);
+      return;
+    }
+
+    var user1 = authenticated_user(req);
     if (user1 == null) {
       await out.send_message("Please Login to Continue!", 400);
       return
@@ -122,10 +121,7 @@ eventRouter.post("/register", async (req: Request, res: Response) => {
       }
     }
   } catch (e) {
-    console.log("Error Occured");
-    console.log(e);
-    await out.send_500_response()
-    return;
+    next(e);
   }
 });
 
@@ -133,7 +129,7 @@ eventRouter.post("/register", async (req: Request, res: Response) => {
   Get an event by its id, return an event
 */
 
-eventRouter.get("/get", async (req, res) => {
+eventRouter.get("/get", async (req, res, next) => {
   var { id = null } = req.query;
   var out = new CustomResponse(res)
   if (id == null) {
@@ -169,10 +165,7 @@ eventRouter.get("/get", async (req, res) => {
     }])
     return;
   } catch (e) {
-    console.log("Error occured");
-    console.log(e);
-    await out.send_500_response()
-    return;
+    next(e);
   }
 })
 
@@ -180,7 +173,7 @@ eventRouter.get("/get", async (req, res) => {
   Get all the events
 */
 
-eventRouter.get("/getAll", async (req, res) => {
+eventRouter.get("/getAll", async (req, res, next) => {
   var { count = -1 } = req.query;
   var out = new CustomResponse(res);
   try {
@@ -222,7 +215,7 @@ eventRouter.get("/getAll", async (req, res) => {
         is_team: cur.is_team,
         is_reg: cur.is_reg,
         gctian_only: cur.gctian_only,
-        participants: admin ? participants.map(val => {return {userId: val.userId,date:val.date}}) : null,
+        participants: admin ? participants.map(val => { return { userId: val.userId, date: val.date } }) : null,
         participate_in: participate_in,
         closed: cur.closed,
         teams: admin ? cur.teams : null,
@@ -232,9 +225,7 @@ eventRouter.get("/getAll", async (req, res) => {
     await out.send_response(200, "Successfuly fetched!", data)
     return;
   } catch (e) {
-    console.log("Error occurred ");
-    console.log(e);
-    await out.send_500_response()
+    next(e);
   }
 })
 
@@ -244,7 +235,7 @@ eventRouter.get("/getAll", async (req, res) => {
   Delete an evnet, event id required, admin role required
 */
 
-eventRouter.post("/delete", async (req: Request, res: Response) => {
+eventRouter.post("/delete", async (req: Request, res: Response, next: NextFunction) => {
   var out = new CustomResponse(res)
   if (!is_admin(req)) {
     await out.send_message("You are not an admin!", 400)
@@ -263,23 +254,16 @@ eventRouter.post("/delete", async (req: Request, res: Response) => {
       return
     }
     var err = await Event.deleteOne({ id: id });
-    try {
-      if (err.deletedCount < 1) {
-        await out.send_message("Unable to delete", 400)
-        return
-      } else {
-        var err2 = await EventReg.deleteMany({ event: ev });
-        await out.send_response(200, "Deleted Successfuly", { eventId: id })
-        return
-      }
-    } catch (err) {
-      await out.send_500_response()
+    if (err.deletedCount < 1) {
+      await out.send_message("Unable to delete", 400)
+      return
+    } else {
+      var err2 = await EventReg.deleteMany({ event: ev });
+      await out.send_response(200, "Deleted Successfuly", { eventId: id })
       return
     }
   } catch (e) {
-    console.log("Error occured");
-    await out.send_500_response()
-    return;
+    next(e);
   }
 });
 
@@ -287,7 +271,7 @@ eventRouter.post("/delete", async (req: Request, res: Response) => {
   Edit an event, admin role required, 
 */
 
-eventRouter.post("/edit", async (req, res) => {
+eventRouter.post("/edit", async (req, res, next) => {
   var {
     id = null,
     name = null,
@@ -346,10 +330,7 @@ eventRouter.post("/edit", async (req, res) => {
       return
     }
   } catch (e) {
-    console.log("Error occured");
-    console.log(e)
-    await out.send_500_response()
-    return;
+    next(e);
   }
 });
 
@@ -357,7 +338,7 @@ eventRouter.post("/edit", async (req, res) => {
   Create an event, admin role required.
 */
 
-eventRouter.post("/create", async (req: Request, res: Response) => {
+eventRouter.post("/create", async (req: Request, res: Response, next: NextFunction) => {
   var {
     name = null,
     description = null,
@@ -416,20 +397,14 @@ eventRouter.post("/create", async (req: Request, res: Response) => {
       reg_link: reg_link,
       gctian_only: gctian_only
     });
-    try {
-      await ev.save();
-    } catch (err) {
-      console.log(err)
-      await out.send_message("Data validation failed! " + JSON.stringify(err))
-    }
+    await ev.save();
+
     await out.send_response(200, "Event Created ", {
       id: ev.id,
       name: ev.name
     })
     return;
   } catch (e) {
-    console.log(e)
-    await out.send_500_response()
-    return;
+    next(e);
   }
 });
