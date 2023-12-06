@@ -31,6 +31,7 @@ userRouter.post("/details", async (req, res) => {
       userId: user!.userId,
       name: user!.name,
       email: user!.email,
+      phone: user!.phone,
       picture: user!.picture,
       gctian: user!.gctian,
       college: user!.college,
@@ -112,6 +113,46 @@ userRouter.post("/login", async (req, res) => {
     userId: p!.userId,
     token: token,
     step: p!.step,
+  });
+});
+
+userRouter.post("/editDetails", async (req, res) => {
+  var out = new CustomResponse(res);
+  if (!is_authenticated(req)) {
+    await out.send_message("User not logged in!", 400);
+    return;
+  }
+  var user = authenticated_user(req);
+  if (!user) {
+    await out.send_message("User not logged in!", 400);
+    return;
+  }
+  var {
+    name = null,
+    phone = null,
+    college = null,
+    course = null,
+    year = null,
+    gctian = null,
+  } = req.body;
+
+  if (name != null) user.name = name;
+  if (phone != null) user.phone = phone;
+  if (gctian != null) {
+    user.gctian = gctian;
+    console.log("Gctian is " + (user.gctian == true));
+    if (user.gctian == true)
+      user.college =
+        "Kodiyeri Balakrishnan Memorial Government College Thalassery";
+  }
+  if (gctian == null && user.gctian == false && college != null)
+    user.college = college;
+  if (course != null) user.course = course;
+  if (year != null) user.year = year;
+  user.save();
+  await out.send_response(200, "Details updated!", {
+    userId: user.userId,
+    name: user.name,
   });
 });
 
