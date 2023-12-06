@@ -4,8 +4,31 @@ import { Event } from "../../models/Event";
 import { EventReg } from "../../models/EventReg";
 import { CustomResponse } from "../../response";
 import { authenticated_user, is_admin, is_authenticated } from "../../request";
+import { About } from "../../models/About";
 
 export const eventRouter = Router();
+
+eventRouter.get('/aboutVijnana', async (req, res, next) => {
+  var out = new CustomResponse(res)
+  try {
+    var about = await About.findOne().exec()
+    if (!about) {
+      await out.send_message("No about data found!", 400)
+      return
+    }
+    await out.send_response(200, "Successfuly fetched!", {
+      name: about.name,
+      start: about.start,
+      end: about.end,
+      about: about.about,
+      contact: about.contact,
+      email: about.email
+    })
+    return 
+  }catch(err){
+    next(err)
+  }
+})
 
 /*
   Get the events the user is regsitered to. Get the user from token
