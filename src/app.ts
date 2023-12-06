@@ -16,10 +16,8 @@ import { RequestLog } from "./models/Log";
 import CustomRequest from "./request";
 import Jwt from "jsonwebtoken";
 import { User } from "./models/User";
-import { CustomResponse } from "./response";
+
 dotenv.config();
-// var logger = require("morgan");
-// var cors = require("cors");
 
 var app = express();
 app.use(cors());
@@ -30,7 +28,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(async function (req: Request, res: Response, next: NextFunction) {
   try {
-    console.log("Token validation middleware");
+    console.log(" -- Token validation middleware");
     var token =
       req.body.token ||
       (req.headers["authorization"] &&
@@ -42,9 +40,9 @@ app.use(async function (req: Request, res: Response, next: NextFunction) {
       if (user) {
         (req as any as CustomRequest).is_authenticated = true;
         (req as any as CustomRequest).user = user;
+        (req as any as CustomRequest).is_admin = user.is_admin;
       }
     }
-    // console.log(token);
   } catch (err) {
     console.log("Error checking token");
     console.log(err);

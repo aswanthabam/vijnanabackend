@@ -15,6 +15,7 @@ export interface UserType extends Document {
   token: string | null; // 2
   is_google: boolean; // 1
   step: number; // 1
+  is_admin: boolean; // 1
   password: string | null; // 1
   picture: string | null; // 1
   participate: [EventRegI]; // 2
@@ -74,6 +75,10 @@ const userSchema = new Schema<UserType>(
       default: false,
     },
     is_google: {
+      type: Boolean,
+      default: false,
+    },
+    is_admin: {
       type: Boolean,
       default: false,
     },

@@ -5,7 +5,7 @@ import { Admin } from "../../models/Admin";
 import { Event } from "../../models/Event";
 import { EventReg } from "../../models/EventReg";
 import { CustomResponse } from "../../response";
-import { authenticated_user, is_authenticated } from "../../request";
+import { authenticated_user, is_admin, is_authenticated } from "../../request";
 
 export const eventRouter = Router();
 
@@ -126,66 +126,6 @@ eventRouter.post("/register", async (req: Request, res: Response) => {
   } catch (e) {
     console.log("Error Occured");
     console.log(e);
-    await out.send_500_response()
-    return;
-  }
-});
-
-// ROUTE : /API/EVENT/DELETE (GET)
-
-eventRouter.post("/delete", async (req: Request, res: Response) => {
-  var { id = null, token = null } = req.body;
-  var out = new CustomResponse(res)
-  var admin = false;
-  if (id == null) {
-    await out.send_message("ID not given", 400)
-    return;
-  }
-  console.log("Deletion " + id + " token " + token);
-  if (token != null) {
-    var p = await Admin.find({ token: token });
-    if (p == null || p.length != 1) {
-      await out.send_message("Invalid Token", 400);
-      return
-    }
-    var p1 = p[0];
-    var date = new Date();
-    if (date.getFullYear() >= p1.expiry!.getFullYear() && date.getMonth() >= p1.expiry!.getDate() && date.getDate() >= p1.expiry!.getDate() && date.getHours() >= p1.expiry!.getHours() && date.getMinutes() >= p1.expiry!.getMinutes()) {
-      await out.send_message("Expired Token", 400);
-      return
-    } else admin = true;
-
-    if (!admin) {
-      console.log("User is admin ✔️");
-      return;
-    }
-    console.log("User is not admin ❌");
-  } else {
-    await out.send_message("Token is not given", 400);
-    return;
-  }
-  try {
-    var ev = await Event.findOne({ id: id }).exec()
-    if (!ev) {
-      await out.send_message("The event doesnt exists!");
-      return
-    }
-    var err = await Event.deleteOne({ id: id });
-    try {
-      if (err.deletedCount < 1) {
-        await out.send_message("Unable to delete", 400)
-        return
-      } else {
-        var err2 = await EventReg.deleteMany({ event: ev });
-        await out.send_response(200, "Deleted Successfuly", { eventId: id })
-        return
-      }
-    } catch (err) {
-      await out.send_500_response()
-      return
-    }
-  } catch (e) {
-    console.log("Error occured");
     await out.send_500_response()
     return;
   }
@@ -315,6 +255,51 @@ eventRouter.get("/getAll", async (req, res) => {
   }
 })
 
+/* ----------------- ADMIN ONLY ENDPOINTS ----------------- */
+
+/*
+  Delete an evnet, event id required, admin role required
+*/
+
+eventRouter.post("/delete", async (req: Request, res: Response) => {
+  var out = new CustomResponse(res)
+  if(!is_admin(req)) {
+    await out.send_message("You are not an admin!", 400)
+    return
+  }
+  var { id = null } = req.body;
+  if (id == null) {
+    await out.send_message("ID not given", 400)
+    return;
+  }
+  console.log("Deletion " + id);
+  try {
+    var ev = await Event.findOne({ id: id }).exec()
+    if (!ev) {
+      await out.send_message("The event doesnt exists!");
+      return
+    }
+    var err = await Event.deleteOne({ id: id });
+    try {
+      if (err.deletedCount < 1) {
+        await out.send_message("Unable to delete", 400)
+        return
+      } else {
+        var err2 = await EventReg.deleteMany({ event: ev });
+        await out.send_response(200, "Deleted Successfuly", { eventId: id })
+        return
+      }
+    } catch (err) {
+      await out.send_500_response()
+      return
+    }
+  } catch (e) {
+    console.log("Error occured");
+    await out.send_500_response()
+    return;
+  }
+});
+
 /*
   Edit an event, admin role required, 
 */
@@ -340,40 +325,40 @@ eventRouter.post("/edit", async (req, res) => {
   } = req.body;
 
   var out = new CustomResponse(res);
+  if(!is_admin(req)) {
+    await out.send_message("You are not an admin!", 400)
+    return
+  }
   if (id == null) {
     await out.send_message("No id given", 400)
     return
   }
   try {
-    var ev = await Event.find({ id: id });
-    if (ev == null) {
-      await out.send_message("NO event witht the ID", 400)
-      return
-    } else if (ev.length != 1) {
+    var ev = await Event.findOne({ id: id }).exec();
+    if (!ev ) {
       await out.send_message("NO event witht the ID", 400)
       return
     } else {
-      var ev1 = ev[0];
-      if (name != null) ev1.name = name;
-      if (description != null) ev1.description = description;
-      if (date != null) ev1.date = date;
-      if (type != null) ev1.type = type;
-      if (image != null) ev1.image = image;
-      if (maxPart != null) ev1.maxpart = maxPart;
-      if (minPart != null) ev1.minpart = minPart;
-      if (poster != null) ev1.poster = poster;
-      if (docs != null) ev1.docs = docs;
-      if (venue != null) ev1.venue = venue;
-      if (details != null) ev1.details = details;
-      if (reg_link != null) ev1.reg_link = reg_link;
-      if (gctian_only != null) ev1.gctian_only = gctian_only;
-      ev1.is_reg = is_reg;
-      ev1.closed = closed;
+      if (name != null) ev.name = name;
+      if (description != null) ev.description = description;
+      if (date != null) ev.date = date;
+      if (type != null) ev.type = type;
+      if (image != null) ev.image = image;
+      if (maxPart != null) ev.maxpart = maxPart;
+      if (minPart != null) ev.minpart = minPart;
+      if (poster != null) ev.poster = poster;
+      if (docs != null) ev.docs = docs;
+      if (venue != null) ev.venue = venue;
+      if (details != null) ev.details = details;
+      if (reg_link != null) ev.reg_link = reg_link;
+      if (gctian_only != null) ev.gctian_only = gctian_only;
+      ev.is_reg = is_reg;
+      ev.closed = closed;
 
-      await ev1.save();
+      await ev.save();
       await out.send_response(200, "Event saved (" + name + ")", {
-        id: ev1.id,
-        name: ev1.name,
+        id: ev.id,
+        name: ev.name,
       })
       return
     }
@@ -409,6 +394,10 @@ eventRouter.post("/create", async (req: Request, res: Response) => {
   } = req.body;
 
   var out = new CustomResponse(res)
+  if(!is_admin(req)) {
+    await out.send_message("You are not an admin!", 400)
+    return
+  }
   if (name == null || description == null || date == null || type == null || image == null || venue == null || details == null) {
     if (name == null) out.set_data_key('name', "Name not provided");
     if (description == null) out.set_data_key('description', "description not provided");
@@ -423,11 +412,8 @@ eventRouter.post("/create", async (req: Request, res: Response) => {
   }
 
   try {
-    var id = type.replaceAll(' ','') + '-' + name.replaceAll(" ", "")
+    var id = type.replaceAll(' ','').toLowerCase() + '-' + name.replaceAll(" ", "").toLowerCase();
     console.log("Creating event " + id)
-    id = id.toLowerCase();
-    console.log("Creating event " + id)
-    // var id = (type + "-" + name.replace(" ", "").toLowerCase() + "-" + new Date(date).getDate()).replace("/", "").replace("&", "").replace("?", "").replace("+", "");//btoa("Event"+type+name+new Date()).replace("=","");
     var ev = new Event({
       id: id,
       name: name,
