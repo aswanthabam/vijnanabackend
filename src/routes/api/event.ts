@@ -201,10 +201,9 @@ eventRouter.get("/getAll", async (req, res, next) => {
   var out = new CustomResponse(res);
   try {
     var admin = is_admin(req);
-
-    if (count == -1) var p2 = await Event.find().populate("participants").sort({ date: 1 });//.then(p =>{
-    else var p2 = await Event.find().populate("participants").sort({ date: 1 }).limit(count as number);//.then(p =>{
-    if (p2 == null) {
+    if (count == -1) var p2 = await Event.find().populate("participants").sort({ date: 1 }).exec();//.then(p =>{
+    else var p2 = await Event.find().populate("participants").sort({ date: 1 }).limit(count as number).exec();//.then(p =>{
+    if (!p2) {
       await out.send_message("No Events!", 400);
       return;
     }
@@ -214,8 +213,8 @@ eventRouter.get("/getAll", async (req, res, next) => {
       var participants = cur.participants;
       var participate_in = false;
       if (is_authenticated(req)) {
-        for (var i = 0; i < participants.length; i++) {
-          var par = participants[i];
+        for (var j = 0; j < participants.length; j++) {
+          var par = participants[j];
           if (par.userId == authenticated_user(req)?.userId) {
             participate_in = true;
             break;
