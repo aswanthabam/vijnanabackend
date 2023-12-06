@@ -1,7 +1,5 @@
 const env = process.env
 import { Request, Response, Router } from "express";
-import { User, UserI } from "../../models/User";
-import { Admin } from "../../models/Admin";
 import { Event } from "../../models/Event";
 import { EventReg } from "../../models/EventReg";
 import { CustomResponse } from "../../response";
@@ -70,7 +68,7 @@ eventRouter.post("/register", async (req: Request, res: Response) => {
     if (user1 == null) {
       await out.send_message("Please Login to Continue!", 400);
       return
-    } else if(user1.step != 2) {
+    } else if (user1.step != 2) {
       await out.send_message("Please complete registration to continue!", 400);
       return
     }
@@ -88,7 +86,7 @@ eventRouter.post("/register", async (req: Request, res: Response) => {
         await out.send_message("Only KBMGCT students can register for this event!", 400);
         return;
       }
-      if(event1.is_reg == false){
+      if (event1.is_reg == false) {
         await out.send_message("This event is open to all!", 400);
         return;
       }
@@ -148,6 +146,7 @@ eventRouter.get("/get", async (req, res) => {
       await out.send_message("Event not found", 400)
       return;
     }
+    var admin = is_admin(req);
     await out.send_response(200, "Success", [{
       id: p[0].id,
       name: p[0].name,
@@ -164,7 +163,7 @@ eventRouter.get("/get", async (req, res) => {
       is_team: p[0].is_team,
       is_reg: p[0].is_reg,
       gcitan_only: p[0].gctian_only,
-      participants: p[0].participants.map((par) => { return { userId: par.userId, date: par.date } }),
+      participants: admin ? p[0].participants.map((par) => { return { userId: par.userId, date: par.date } }) : null,
       closed: p[0].closed,
       reg_link: p[0].reg_link
     }])
@@ -182,48 +181,31 @@ eventRouter.get("/get", async (req, res) => {
 */
 
 eventRouter.get("/getAll", async (req, res) => {
-  var { token = null, count = -1 } = req.query;
+  var { count = -1 } = req.query;
   var out = new CustomResponse(res);
   try {
-    var admin = false;
-    if (token != null) {
-      var p = await Admin.find({ token: token });
-      if (p == null) {
-        await out.send_message("Invalid token", 400)
-        return
-      } else if (p.length != 1) {
-        await out.send_message("Invalid token", 400)
-        return
-      } else {
-        var p1 = p[0];
-        var date = new Date();
-        if (date.getFullYear() >= p1.expiry!.getFullYear() && date.getMonth() >= p1.expiry!.getDate() && date.getDate() >= p1.expiry!.getDate() && date.getHours() >= p1.expiry!.getHours() && date.getMinutes() >= p1.expiry!.getMinutes()) {
-          await out.send_message("Expired token", 400)
-          return;
-        } else admin = true;
-      }
-      if (!admin) {
-        console.log("Not an Admin ❌");
-        return;
-      }
-      console.log("Admin ✔️")
-    }
+    var admin = is_admin(req);
+
     if (count == -1) var p2 = await Event.find().populate("participants").sort({ date: 1 });//.then(p =>{
     else var p2 = await Event.find().populate("participants").sort({ date: 1 }).limit(count as number);//.then(p =>{
     if (p2 == null) {
-      await out.send_message("no events", 400);
+      await out.send_message("No Events!", 400);
       return;
     }
     var data = [];
     for (var i = 0; i < p2.length; i++) {
       var cur = p2[i];
-      var participants = [];
-      if (!admin) {
-        for (var j = 0; j < cur.participants.length; j++) {
-          participants.push({ userId: cur.participants[j].userId });
+      var participants = cur.participants;
+      var participate_in = false;
+      if (is_authenticated(req)) {
+        for (var i = 0; i < participants.length; i++) {
+          var par = participants[i];
+          if (par.userId == authenticated_user(req)?.userId) {
+            participate_in = true;
+            break;
+          }
         }
-      } else participants = cur.participants;
-      console.log(participants)
+      }
       data.push({
         id: cur.id,
         name: cur.name,
@@ -240,7 +222,8 @@ eventRouter.get("/getAll", async (req, res) => {
         is_team: cur.is_team,
         is_reg: cur.is_reg,
         gctian_only: cur.gctian_only,
-        participants: participants,
+        participants: admin ? participants.map(val => {return {userId: val.userId,date:val.date}}) : null,
+        participate_in: participate_in,
         closed: cur.closed,
         teams: admin ? cur.teams : null,
         reg_link: cur.reg_link
@@ -263,7 +246,7 @@ eventRouter.get("/getAll", async (req, res) => {
 
 eventRouter.post("/delete", async (req: Request, res: Response) => {
   var out = new CustomResponse(res)
-  if(!is_admin(req)) {
+  if (!is_admin(req)) {
     await out.send_message("You are not an admin!", 400)
     return
   }
@@ -325,7 +308,7 @@ eventRouter.post("/edit", async (req, res) => {
   } = req.body;
 
   var out = new CustomResponse(res);
-  if(!is_admin(req)) {
+  if (!is_admin(req)) {
     await out.send_message("You are not an admin!", 400)
     return
   }
@@ -335,7 +318,7 @@ eventRouter.post("/edit", async (req, res) => {
   }
   try {
     var ev = await Event.findOne({ id: id }).exec();
-    if (!ev ) {
+    if (!ev) {
       await out.send_message("NO event witht the ID", 400)
       return
     } else {
@@ -394,7 +377,7 @@ eventRouter.post("/create", async (req: Request, res: Response) => {
   } = req.body;
 
   var out = new CustomResponse(res)
-  if(!is_admin(req)) {
+  if (!is_admin(req)) {
     await out.send_message("You are not an admin!", 400)
     return
   }
@@ -412,7 +395,7 @@ eventRouter.post("/create", async (req: Request, res: Response) => {
   }
 
   try {
-    var id = type.replaceAll(' ','').toLowerCase() + '-' + name.replaceAll(" ", "").toLowerCase();
+    var id = type.replaceAll(' ', '').toLowerCase() + '-' + name.replaceAll(" ", "").toLowerCase();
     console.log("Creating event " + id)
     var ev = new Event({
       id: id,

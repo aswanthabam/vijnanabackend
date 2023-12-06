@@ -1,6 +1,5 @@
 const env = process.env;
 import { Router, Request, Response } from "express";
-import { Admin } from "../../models/Admin";
 import { CustomResponse } from "../../response";
 import { is_admin } from "../../request";
 
