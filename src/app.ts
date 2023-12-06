@@ -12,8 +12,8 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
-import { RequestLog } from "./models/Log";
-import CustomRequest from "./request";
+import { ErrorLog, RequestLog } from "./models/Log";
+import CustomRequest, { authenticated_user } from "./request";
 import Jwt from "jsonwebtoken";
 import { User } from "./models/User";
 import { CustomResponse } from "./response";
@@ -66,6 +66,7 @@ app.use(async function (req: Request, res: Response, next: NextFunction) {
       var log = new RequestLog({
         url: req.url,
         type: req.method,
+        user: authenticated_user(req),
         data: JSON.stringify(req.body),
       });
       await log.save();
@@ -92,6 +93,21 @@ app.use(async function (
 ) {
   console.log("Error handler");
   console.log(err);
+  var log = res.getHeader("logID") || null;
+  try {
+    if (env.LOG && env.LOG == "true") {
+      var errLog = new ErrorLog({
+        route: req.url,
+        error: err.toString(),
+        log: log as string | null | undefined,
+        stack: err.stack,
+      });
+      await errLog.save();
+    }
+  } catch (err) {
+    console.log("Error logging error");
+    console.log(err);
+  }
   var out = new CustomResponse(res);
   await out.send_500_response();
 });
