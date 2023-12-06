@@ -145,8 +145,7 @@ userRouter.post("/editDetails", async (req, res) => {
       user.college =
         "Kodiyeri Balakrishnan Memorial Government College Thalassery";
   }
-  if (gctian == null && user.gctian == false && college != null)
-    user.college = college;
+  if (user.gctian == false && college != null) user.college = college;
   if (course != null) user.course = course;
   if (year != null) user.year = year;
   user.save();
@@ -196,12 +195,12 @@ userRouter.post("/createAccount/complete", async (req, res) => {
     return;
   }
   user.phone = phone;
-  user.college = gctian
+  user.gctian = gctian;
+  user.college = user.gctian
     ? "Kodiyeri Balakrishnan Memorial Government College Thalassery"
     : college;
   user.course = course;
   user.year = year;
-  user.gctian = gctian;
   user.step = 2;
   try {
     await user.save();
