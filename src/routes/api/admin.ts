@@ -5,24 +5,25 @@ import { is_admin } from "../../request";
 import { About } from "../../models/About";
 import { User } from "../../models/User";
 import { ErrorLog, RequestLog } from "../../models/Log";
-import { count } from "console";
 
 export const adminApiRouter = Router();
 
 adminApiRouter.get("/logs/error", async (req, res, next) => {
   try {
     var { count = 10 } = req.query;
+    if (typeof count === "string") {
+      count = parseInt(count);
+    }
     var out = new CustomResponse(res);
     if (!is_admin(req)) {
       await out.send_message("Not an admin", 400);
       return;
     }
     var logs = await ErrorLog.find()
-      .limit((count as number) + 1)
+      .limit(count as number)
       .sort({ createdAt: -1 })
       .populate("log")
       .exec();
-    logs = logs.slice(1, count as number);
     await out.send_response(200, "Success", {
       count: logs.length,
       logs: logs.map((l) => {
@@ -49,17 +50,22 @@ adminApiRouter.get("/logs/error", async (req, res, next) => {
 adminApiRouter.get("/logs/request", async (req, res, next) => {
   try {
     var { count = 10 } = req.query;
+    if (typeof count === "string") {
+      count = parseInt(count);
+    }
+    console.log(count);
     var out = new CustomResponse(res);
     if (!is_admin(req)) {
       await out.send_message("Not an admin", 400);
       return;
     }
     var logs = await RequestLog.find()
-      .limit((count as number) + 1)
+      .limit(count as number)
       .sort({ createdAt: -1 })
       .populate("user")
       .exec();
-    logs = logs.slice(1, count as number);
+    // console.log(logs);
+    // logs = logs.slice(1);
     await out.send_response(200, "Success", {
       count: logs.length,
       logs: logs.map((l) => {
@@ -76,7 +82,7 @@ adminApiRouter.get("/logs/request", async (req, res, next) => {
           },
           data: l.data,
           completed: l.response ? true : false,
-          response: l.response,
+          response: l.response ? JSON.parse(l.response) : null,
           requestTime: l.createdAt,
           responseTime: l.updatedAt,
         };
