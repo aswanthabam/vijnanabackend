@@ -4,8 +4,52 @@ import { CustomResponse } from "../../response";
 import { is_admin } from "../../request";
 import { About } from "../../models/About";
 import { User } from "../../models/User";
+import { RequestLog } from "../../models/Log";
+import { count } from "console";
 
 export const adminApiRouter = Router();
+
+adminApiRouter.get("/logs/request", async (req, res, next) => {
+  try {
+    var { count = 10 } = req.query;
+    var out = new CustomResponse(res);
+    if (!is_admin(req)) {
+      await out.send_message("Not an admin", 400);
+      return;
+    }
+    var logs = await RequestLog.find()
+      .limit((count as number) + 1)
+      .sort({ createdAt: -1 })
+      .populate("user")
+      .exec();
+    logs = logs.slice(1, count as number);
+    await out.send_response(200, "Success", {
+      count: logs.length,
+      logs: logs.map((l) => {
+        return {
+          status: l.status,
+          method: l.type,
+          url: l.url,
+          user: {
+            userId: l.user?.userId,
+            name: l.user?.name,
+            email: l.user?.email,
+            phone: l.user?.phone,
+            college: l.user?.college,
+          },
+          data: l.data,
+          completed: l.response ? true : false,
+          response: l.response,
+          requestTime: l.createdAt,
+          responseTime: l.updatedAt,
+        };
+      }),
+    });
+    return;
+  } catch (err) {
+    next(err);
+  }
+});
 
 adminApiRouter.post(
   "/users",
