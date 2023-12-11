@@ -3,8 +3,47 @@ import { Router, Request, Response, NextFunction } from "express";
 import { CustomResponse } from "../../response";
 import { is_admin } from "../../request";
 import { About } from "../../models/About";
+import { User } from "../../models/User";
 
 export const adminApiRouter = Router();
+
+adminApiRouter.post(
+  "/users",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      var out = new CustomResponse(res);
+      if (!is_admin(req)) {
+        await out.send_message("Not an admin", 400);
+        return;
+      }
+      var users = await User.find().populate("participate").exec();
+      await out.send_response(200, "Success", {
+        users: users.map((u) => {
+          return {
+            userId: u.userId,
+            step: u.step,
+            name: u.name,
+            email: u.email,
+            is_admin: u.is_admin,
+            is_google: u.is_google,
+            picture: u.picture,
+            phone: u.phone,
+            college: u.college,
+            course: u.course,
+            year: u.year,
+            participation: u.participate.map((p) => {
+              return { event: p.event };
+            }),
+            registered_on: u.createdAt,
+          };
+        }),
+      });
+      return;
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 /* 
   Check if the user is an admin
