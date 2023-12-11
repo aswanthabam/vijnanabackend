@@ -4,10 +4,47 @@ import { CustomResponse } from "../../response";
 import { is_admin } from "../../request";
 import { About } from "../../models/About";
 import { User } from "../../models/User";
-import { RequestLog } from "../../models/Log";
+import { ErrorLog, RequestLog } from "../../models/Log";
 import { count } from "console";
 
 export const adminApiRouter = Router();
+
+adminApiRouter.get("/logs/error", async (req, res, next) => {
+  try {
+    var { count = 10 } = req.query;
+    var out = new CustomResponse(res);
+    if (!is_admin(req)) {
+      await out.send_message("Not an admin", 400);
+      return;
+    }
+    var logs = await ErrorLog.find()
+      .limit((count as number) + 1)
+      .sort({ createdAt: -1 })
+      .populate("log")
+      .exec();
+    logs = logs.slice(1, count as number);
+    await out.send_response(200, "Success", {
+      count: logs.length,
+      logs: logs.map((l) => {
+        return {
+          url: l.route,
+          error: l.error,
+          stack: l.stack,
+          log: {
+            logId: l.log?.id,
+            data: l.log?.data,
+            userId: l.log?.user,
+          },
+          requestTime: l.createdAt,
+          responseTime: l.updatedAt,
+        };
+      }),
+    });
+    return;
+  } catch (err) {
+    next(err);
+  }
+});
 
 adminApiRouter.get("/logs/request", async (req, res, next) => {
   try {
