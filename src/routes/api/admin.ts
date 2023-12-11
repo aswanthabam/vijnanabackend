@@ -8,6 +8,38 @@ import { ErrorLog, RequestLog } from "../../models/Log";
 
 export const adminApiRouter = Router();
 
+adminApiRouter.post(
+  "/add_admin",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      var out = new CustomResponse(res);
+      if (!is_admin(req)) {
+        await out.send_message("Not an admin", 400);
+        return;
+      }
+      var { email = null } = req.body;
+      if (!email) {
+        await out.send_message("Invalid data", 400);
+        return;
+      }
+      var user = await User.findOne({ email: email }).exec();
+      if (!user) {
+        await out.send_message("User not found", 400);
+        return;
+      }
+      user.is_admin = true;
+      await user.save();
+      await out.send_response(200, "Success", {
+        email: user.email,
+        is_admin: user.is_admin,
+      });
+      return;
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 adminApiRouter.get("/logs/error", async (req, res, next) => {
   try {
     var { count = 10 } = req.query;
