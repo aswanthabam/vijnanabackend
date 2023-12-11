@@ -20,6 +20,8 @@ export interface UserType extends Document {
   picture: string | null; // 1
   participate: [EventRegI]; // 2
   teams: [TeamI] | null; // 2
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const userSchema = new Schema<UserType>(

@@ -63,14 +63,16 @@ app.use(async function (req: Request, res: Response, next: NextFunction) {
   );
   if (env.LOG && env.LOG == "true") {
     try {
-      var log = new RequestLog({
-        url: req.url,
-        type: req.method,
-        user: authenticated_user(req),
-        data: JSON.stringify(req.body),
-      });
-      await log.save();
-      res.setHeader("logID", log._id);
+      if (!req.url.startsWith("/api/v2/admin")) {
+        var log = new RequestLog({
+          url: req.url,
+          type: req.method,
+          user: authenticated_user(req),
+          data: JSON.stringify(req.body),
+        });
+        await log.save();
+        res.setHeader("logID", log._id);
+      }
     } catch (err) {
       console.log("Logging error ");
       console.log(err);

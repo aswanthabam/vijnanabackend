@@ -7,6 +7,8 @@ export interface RequestLogType extends Document {
   response: string | null | undefined;
   user: UserI | null | undefined;
   status: number | null | undefined;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const requestSchema = new Schema<RequestLogType>(
@@ -51,27 +53,32 @@ export interface ErrorLogType extends Document {
   error: string;
   stack: string | null | undefined;
   log: RequestLogI | null | undefined;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export const errorLogSchema = new Schema<ErrorLogType>({
-  route: {
-    type: String,
-    required: true,
+export const errorLogSchema = new Schema<ErrorLogType>(
+  {
+    route: {
+      type: String,
+      required: true,
+    },
+    error: {
+      type: String,
+      required: true,
+    },
+    log: {
+      type: Schema.Types.ObjectId,
+      ref: "RequestLog",
+      required: false,
+    },
+    stack: {
+      type: String,
+      required: false,
+    },
   },
-  error: {
-    type: String,
-    required: true,
-  },
-  log: {
-    type: Schema.Types.ObjectId,
-    ref: "RequestLog",
-    required: false,
-  },
-  stack: {
-    type: String,
-    required: false,
-  },
-});
+  { timestamps: true }
+);
 
 export type ErrorLogI = ErrorLogType & Document;
-export const ErrorLog = mongoose.model<RequestLogI>("ErrorLog", errorLogSchema);
+export const ErrorLog = mongoose.model<ErrorLogI>("ErrorLog", errorLogSchema);
