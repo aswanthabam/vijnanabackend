@@ -3,11 +3,45 @@ import { NextFunction, Request, Response, Router } from "express";
 import { CustomResponse } from "../../response";
 import { User, UserI } from "../../models/User";
 import jwt from "jsonwebtoken";
-import { authenticated_user, is_authenticated } from "../../request";
+import { authenticated_user, is_admin, is_authenticated } from "../../request";
 import { verifyGoogleToken } from "./register";
 
 export const userRouter = Router();
-
+userRouter.get(
+  "/user-details",
+  async (req: Request, res: Response, next: NextFunction) => {
+    var out = new CustomResponse(res);
+    try {
+      if (!is_admin(req)) {
+        await out.send_message("Doesn't has permission to do this!", 400);
+        return;
+      }
+      var { userId } = req.query;
+      if (!userId) {
+        await out.send_message("Invalid data", 400);
+        return;
+      }
+      var user = await User.findOne({ userId: userId }).exec();
+      if (!user) {
+        await out.send_message("User not found", 400);
+        return;
+      }
+      await out.send_response(200, "User found", {
+        userId: user.userId,
+        name: user.name,
+        course: user.course,
+        email: user.email,
+        phone: user.phone,
+        college: user.college,
+        year: user.year,
+        gctian: user.gctian,
+      });
+      return;
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 /*
   Get the details about the user only, nessesary details are fetched,
   the token is used to authenticate the user,
