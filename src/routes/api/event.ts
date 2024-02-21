@@ -197,12 +197,13 @@ eventRouter.get("/get", async (req, res, next) => {
 */
 
 eventRouter.get("/getAll", async (req, res, next) => {
-  var { count = -1 } = req.query;
+  var { count = -1, gctian = 'true' } = req.query;
+   var is_gctian = gctian == 'true' || gctian == 'True' || gctian == 'TRUE' || gctian == '1';
   var out = new CustomResponse(res);
   try {
     var admin = is_admin(req);
-    if (count == -1) var p2 = await Event.find().populate("participants").sort({ date: 1 }).exec();//.then(p =>{
-    else var p2 = await Event.find().populate("participants").sort({ date: 1 }).limit(count as number).exec();//.then(p =>{
+    if (count == -1) var p2 = await Event.find(is_gctian ? {} : {gctian_only:false}).populate("participants").sort({ date: 1 }).exec();//.then(p =>{
+    else var p2 = await Event.find(is_gctian ? {} : {gctian_only:false}).populate("participants").sort({ date: 1 }).limit(count as number).exec();//.then(p =>{
     if (!p2) {
       await out.send_message("No Events!", 400);
       return;
